@@ -50,6 +50,7 @@ Imports:
     rtracklayer, 
     scater, 
     scran, 
+    SpaceTrooper,
     SpatialExperiment, 
     STexampleData, 
     spatialLIBD,
@@ -64,6 +65,8 @@ Suggests:
     knitr,
     downlit,
     xml2
+Remotes:
+    drighelli/SpaceTrooper
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 BiocType: Book
