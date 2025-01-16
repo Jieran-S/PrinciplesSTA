@@ -1,13 +1,12 @@
 # Quality control
 
-- `r BiocStyle::Githubpkg("drighelli/SpaceTrooper")`
-- data are missing molecule coordinates and polygon boundaries to due more sophisticated things...
-
 ## Preamble
 
 ### Introduction
 
 The analyses demonstrated here will use 313-plex Xenium data (10x Genomics) of a human breast cancer biopsy section [@Janesick2023] and the 1k-plex CosMX data (Nanostring) of a human lung non-small cell lung cancer [@He2022-CosMx], both available through the `r BiocStyle::Biocpkg("STexampleData")` package as part of Bioconductor's `r BiocStyle::Biocpkg("ExperimentHub")`.
+
+For the remainder of this Chapter, we will show the two examples in parallel, highlighting when needed the differences between the platforms.
 
 ### Dependencies
 
@@ -21,7 +20,11 @@ library(SpaceTrooper)
 library(STexampleData)
 ```
 
-## Data creation (temp)
+## Data import
+
+Both `r BiocStyle::Biocpkg("SpaceTrooper")` and `r BiocStyle::Biocpkg("SpatialExperimentIO")` provide functions to import CosMX, Xenium, and MERSCOPE datasets in Bioconductor, starting from the output provided by the three platforms.
+
+***NOTE: This section will need to be rewritten when we make a final decision on datasets***
 
 This is a temporary section to integrate the datasets in `r BiocStyle::Biocpkg("STexampleData")` with
 polygon information, useful for the visualization plots presented in this chapter.
@@ -44,14 +47,18 @@ poly <- readPolygonsCosmx("../../Lung9_Rep1-polygons.csv")
 fov <- read.csv("../../Lung9_Rep1_fov_positions_file.csv")
 
 cd <- data.frame(colData(cosmx))
-poly <- left_join(poly, cd, 
+poly <- left_join(poly, cd[,c("fov", "cell_ID")], 
             by = c("fov", "cellID"="cell_ID"))
-cd <- left_join(cd, poly, 
+cd <- left_join(cd, poly[,c("fov", "cellID")], 
       by = c("fov", "cell_ID"="cellID"))
 cd <- dplyr::rename(cd, polygons = global)
 colData(cosmx) <- as(cd, "DataFrame")
 metadata(cosmx)$fov_positions <- fov
 metadata(cosmx)$fov_dim = c(xdim = 5472, ydim = 3648)
+colData(cosmx)$CenterX_global_px <- spatialCoords(cosmx)[,1]
+colData(cosmx)$CenterY_global_px <- spatialCoords(cosmx)[,2]
+metadata(cosmx)$technology <- "Nanostring_CosMx"
+cosmx$sample_id <- "CosMX"
 ```
 
 ### Xenium
@@ -62,6 +69,8 @@ We now load the Xenium data from `r BiocStyle::Biocpkg("STexampleData")`:
 xenium <- Janesick_breastCancer_Xenium_rep1()
 # check object
 xenium
+metadata(xenium)$technology <- "10X_Xenium"
+xenium$sample_id <- "Xenium"
 ```
 
 Then, we use `r BiocStyle::Biocpkg("SpaceTrooper")` to add the polygon information:
@@ -75,51 +84,197 @@ colData(xenium)
 
 ## Visualization
 
-### CosMX
+Imaging-based ST data relies on imaging a 2D tissue section. Hence, an advantage compared to single-cell RNA-seq is that we can readily visualize a 2D map of the cells and directly plot cell features onto the map.
 
-- Cell centroids
+The easiest way to visualize the data is by representing the cells by its centroid. This is useful to have a global bird's-eye-view of the tissue.
 
-```{r plot-cosmx-xy, echo=FALSE, out.width="66%", fig.align="center"}
+Here, we visualize the CosMX data.
+
+```{r plot-cosmx-xy, out.width="66%", fig.align="center"}
 plotCentroidsSPE(cosmx)
 ```
-- FOV map (cosmx only)
 
-```{r plot-fov-map, echo=FALSE, out.width="66%", fig.align="center"}
-plotCellsFovs(cosmx)
-```
+A similar plot can be obtained for the Xenium data.
 
-- Polygons (SpaceTrooper)
-
-```{r plot-cosmx-poly, echo=FALSE, out.width="66%", fig.align="center"}
-plotPolygonsSPE(cosmx[,cosmx$fov==9])
-```
-
-### Xenium
-
-- Cell centroids
-
-```{r plot-xenium-xy, echo=FALSE, out.width="66%", fig.align="center"}
+```{r plot-xenium-xy, out.width="66%", fig.align="center"}
 plotCentroidsSPE(xenium)
 ```
-- Polygons (SpaceTrooper)
 
-```{r plot-xenium-poly, echo=FALSE, out.width="66%", fig.align="center"}
+It may be useful to visualize the centroids color-coded by cell features: for instance the CosMX output includes the fluorescence intensities of a set of antibodies that mark the nuclei and cell surfaces.
+
+Here, we show the distribution of DAPI across the CosMX sample.
+
+```{r plot-cosmx-xy-dapi,out.width="66%", fig.align="center"}
+plotCentroidsSPE(cosmx, colour_by = "Mean.DAPI")
+```
+
+While plotting centroids is good for a overview of the macro tissue structure, when zooming into a specific area, the centroids do not provide the full information. For instance, looking at the first FOV of the CosMX data it is hard to distinguish between areas with low cell densities and areas with large cells.
+
+```{r plot-cosmx-xy-fov1, out.width="66%", fig.align="center"}
+plotCentroidsSPE(cosmx[,cosmx$fov == 1], size = 1)
+```
+
+We can improve the visualization by leveraging the polygons stored in the object from the cell segmentation step.
+
+```{r plot-cosmx-polu-fov1, out.width="66%", fig.align="center"}
+plotPolygonsSPE(cosmx[,cosmx$fov == 1])
+```
+
+The same function can be applied to Xenium data, but here we do not have independent FOVs. Hence, we define a zoom area based on the slide's global coordinates.
+
+```{r plot-xenium-poly, out.width="66%", fig.align="center"}
 box <- (spatialCoords(xenium)[,1] >= 4000 & spatialCoords(xenium)[,1] <= 6000) &
   (spatialCoords(xenium)[,2] >= 0 & spatialCoords(xenium)[,2] <= 2000)
 plotPolygonsSPE(xenium[,box], colour_by = "transcript_counts")
 ```
 
+Note that while it is possible to use `plotPolygonsSPE` on the entire slide, this may be slow and require large amounts of RAM. Since the polygons at that zoom level will be very small and practically indistinguishable to points, we advise against generating a whole-slide polygons plot.
 
-## QC Metrics
+### CosMX-specific visualizations
 
-- Transcript based (total count, ...)
-- Morphology based (Area, ..)
-- Image based (DAPI, ...)
-- Border effecsts (only CosMx)
+Unlike, Xenium and MERSCOPE, CosMX does not stitch fields of view (FOVs) in a single image, but rather treats each FOV independently. The `colData` of the `SpatialExperiment` object resulting from a CosMX import will include the FOV of each cell, but it is sometimes tricky to understand (or remember) the relative position of each FOV within the slide.
 
-Including histograms and violin plots and PCA plots etc
+The `plotCellsFovs` function provides an easy way to map the FOV within the slide.
 
-- Quality score (i.e., combining the metrics)
+```{r plot-fov-map, out.width="66%", fig.align="center"}
+plotCellsFovs(cosmx)
+```
+
+In addition, the `plotZoomFovsMap` provides a way to zoom on a subset of FOVs, while also visualizing the global structure of the tissue.
+
+```{r plot-fov-zoom, out.width="66%", fig.align="center", eval=FALSE}
+plotZoomFovsMap(cosmx, fovs=1)
+```
+
+## Simple QC Metrics
+
+Similarly to single-cell RNA-seq, quality control (QC) is an important step to remove low-quality cells and highlights specific biases in the data at the sample, FOV, or slide area level.
+
+Unlike single-cell RNA-seq and sequencing-based ST, most imaging-based ST platforms do not measure the whole transcriptome, nor an "unbiased" sample of it, but rely on the design of gene panels. 
+
+Depending on the platform and the application, such gene panels may be pan-tissue or targeting specific tissues or cell types. Moreover, they vary from a few hundreds (e.g., 313 in the first Xenium panel) to several thousands (e.g., the 5k Xenium panel or the 6k and 18k CosMX panel). Hence, unlike in sequencing-based platforms, we may not have enough ribosomal or mitochondrial transcripts to use for computing QC metrics. However, imaging-based platforms provide a set of negative probes that can be used to check for aspecific RNA captures.
+
+Finally, imaging-based platforms include, in addition to transcripts data, morphology information (such as the area and eccentricity of the segmented cells) and intensity information from antibody stains (such as those targeting the nuclei or the cell membrane).
+
+`r BiocStyle::Biocpkg("SpaceTrooper")` provides a function to compute and add to the SpatialData object a set of QC metrics. Specifically:
+
+- `Area_um`: the area in microns;
+- `log2AspectRatio`: the log2 of the aspect ratio (x-axis/y-axis) of each cell;
+- `ctrl_total_raio`: the proportion of control probe counts over the total cell counts;
+- `log2CountArea`: the log2 of the count density, i.e., the number of transcripts divided by the cell area.
+
+
+```{r qc-metrics-xenium}
+## These lines are needed temporarily because we are working with a STexampleData object
+## rather than one imported from the 10X Genomics output
+colData(xenium) <- computeAspectRatioFromPolygons(xenium$polygons, colData(xenium))
+xenium$Area_um <- xenium$cell_area
+
+xenium <- spatialPerCellQC(xenium)
+colData(xenium)[,c("Area_um", "log2AspectRatio", "log2CountArea")]
+```
+
+In addition, for CosMX data, it is important to calculate the disance from the  horizontal, vertical, and closest FOV border: `dist_border_x`, `dist_border_y` , `dist_border`, respectively.
+
+```{r qc-metrics-cosmx}
+cosmx <- spatialPerCellQC(cosmx)
+colData(cosmx)[,c("dist_border_x", "dist_border_y", "dist_border")]
+```
+
+Imaging-based ST data relies on imaging a 2D tissue section.
+Cells thus represent a slice through a 3D system, and we expect a tight relationship between a cell's counts and its area.
+When we inspect total counts and cell areas as separate (univariate) distributions, both appear to follow approximate log-normal distributions, both in CosmX:
+
+```{r plot-qc-1d-cosmx, fig.width=6, fig.height=2}
+#| code-fold: true
+
+df <- data.frame(colData(cosmx))
+
+fd <- pivot_longer(df, c("Area_um", "total"))
+mu <- summarise_at(group_by(fd, name), "value", median)
+ggplot(fd, aes(value)) + facet_grid(~name) +
+    geom_histogram(bins=50, linewidth=0.1, fill="grey") +
+    geom_vline(data=mu, aes(xintercept=value), col="blue") +
+    geom_text(
+        hjust=-0.1, size=3, col="blue",
+        data=mu, aes(value, 0, label=round(value))) +
+    scale_x_continuous(NULL, trans="log10") + ylab("# cells") +
+    theme_minimal() + theme(panel.grid.minor=element_blank())
+```
+
+And in Xenium:
+
+```{r plot-qc-1d-xenium, fig.width=6, fig.height=2}
+#| code-fold: true
+
+dfx <- data.frame(colData(xenium))
+
+fd <- pivot_longer(dfx, c("cell_area", "total_counts"))
+mu <- summarise_at(group_by(fd, name), "value", median)
+ggplot(fd, aes(value)) + facet_grid(~name) +
+    geom_histogram(bins=50, linewidth=0.1, fill="grey") +
+    geom_vline(data=mu, aes(xintercept=value), col="blue") +
+    geom_text(
+        hjust=-0.1, size=3, col="blue",
+        data=mu, aes(value, 0, label=round(value))) +
+    scale_x_continuous(NULL, trans="log10") + ylab("# cells") +
+    theme_minimal() + theme(panel.grid.minor=element_blank())
+```
+
+Note that the cell area is much bigger in Xenium, mostly because of the different cell segmentation algorithm used.
+
+We can also view the distribution of these metrics across the tissue slide by plotting cell centroids colored by total counts and cell area, respectively:
+
+```{r plot-qc-xy-cosmx, fig.width=9, fig.height=3}
+#| code-fold: true
+plotCentroidsSPE(cosmx, colour_by = "total")
+plotCentroidsSPE(cosmx, colour_by = "Area_um")
+```
+
+```{r plot-qc-xy-xenium, fig.width=9, fig.height=3}
+#| code-fold: true
+plotCentroidsSPE(xenium, colour_by = "total_counts")
+plotCentroidsSPE(xenium, colour_by = "cell_area")
+```
+
+In a bivariate setting, however, we observe, as expected, a positive relationship between counts and area. However such dependencies is not always linear and may exhibit a bimodal distribution.
+
+```{r plot-qc-2d-one, fig.width=3, fig.height=3}
+#| code-fold: true
+ggplot(df, aes(Area_um, total)) + 
+    geom_point(shape=16, size=0.1, alpha=0.1) +
+    geom_density_2d() +
+    scale_x_continuous(trans="log10") +
+    scale_y_continuous(trans="log10") +
+    theme_minimal() + theme(
+        aspect.ratio=1,
+        panel.grid.minor=element_blank()) +
+  ggtitle("CosMX")
+
+ggplot(dfx, aes(cell_area, total_counts)) + 
+    geom_point(shape=16, size=0.1, alpha=0.1) +
+    geom_density_2d() +
+    scale_x_continuous(trans="log10") +
+    scale_y_continuous(trans="log10") +
+    theme_minimal() + theme(
+        aspect.ratio=1,
+        panel.grid.minor=element_blank()) +
+  ggtitle("Xenium")
+```
+
+In some cases, a peculiar count-area distribution might be indicative of cell segmentation issues. 
+When groups of cells are merged together, for example, we might observe fewer counts than expected for a given area (when they are far apart, i.e., empty space is being segmented).
+
+An useful metric to explore this issue is the `log2CountArea`, which estimates the transcript density for each cell.
+
+```{r tx-density, fig.width=4, fig.height=3}
+#| code-fold: true
+
+plotCentroidsSPE(cosmx, colour_by = "log2CountArea")
+plotCentroidsSPE(xenium, colour_by = "log2CountArea")
+```
+
+Considering the spatial distribution of the transcript density, it is reasonable to assume that they represent distinct transcriptional states (not technical artefacts), with the exception of a small area at the bottom-center of the Xenium slide.
 
 ## Filtering
 
