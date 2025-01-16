@@ -1,0 +1,242 @@
+# Clustering and Differential Expression {#sec-img-clustering-de}
+
+## Preamble
+
+### Dependencies
+
+```{r deps, message=FALSE, warning=FALSE}
+#library(dplyr)
+#library(tidyr)
+#library(patchwork)
+library(ggspavis)
+library(scran)
+library(scater)
+library(SpatialExperiment)
+library(igraph)
+library(Banksy)
+library(clue)
+```
+
+
+```{r load data, message=FALSE, warning=FALSE}
+seed <- 2025
+# load data from previous section
+spe <- readRDS("img-spe_qc.rds")
+spe_CosMX <- STexampleData::CosMx_lungCancer()
+# basic theme for spatial plots
+theme_xy <- list(
+    coord_equal(expand=FALSE), 
+    theme_void(), theme(
+        plot.margin=margin(l=5),
+        legend.key=element_blank(),
+        legend.key.size=unit(0.5, "lines"),
+        panel.background=element_rect(fill="black", color="white")))
+```
+
+## Preprocessing
+
+Library size-based normalization as is typical for scRNA-seq data has been shown to be problematic for ST data, especially so for targeted panels underlying current commercial imaging-based ST platforms [@Atta2024,@Bhuva2024].
+For lack of a better approach, we here use standard log-library size normalization.
+We caution readers, however, to keep an eye out in the literature for attempts to provide a better strategy.
+
+```{r calc-norm}
+spe <- scater::logNormCounts(spe)
+```
+
+## Clustering
+
+### Non-spatial Clustering
+
+1. Using Leiden clustering to showcase the results
+2. Can also use spatialPCA or BanksyPCA results for some already spatially-aware clusterings
+
+```{r leiden clustering}
+spe <- scater::runPCA(spe, ncomponents=30) 
+g <- scran::buildSNNGraph(spe, use.dimred="PCA", k=30)
+
+set.seed(seed)
+k <- igraph::cluster_leiden(g, resolution=0.09)$membership
+table(spe$Leiden_clusters <- factor(k, seq_along(unique(k))))
+```
+
+### Spatially-aware clustering: Neighborhood smoothing methods
+
+1. Brief introduction of BANKSY principle
+2. Introduction of the type of methods that are embedding the spatial information
+3. Suggest also other methods with similar line of logic (embedding-based)
+
+`r BiocStyle::Biocpkg("BANKSY")` [@Singhal2024-BANKSY] essentially computes PCs that are weighted by embeds cells in a product space of their own and the local neighborhood transcriptome, representing cell state and microenvironment.
+A key parameter for this method is $\lambda\in[0,1]$ (argument `lambda` in `runBanksyPCA()`), which controls the amount of spatial information to incorporate; specifically, **when $\lambda=0$, `BANKSY` reduces to non-spatial clustering**.
+
+```{r clust-sp, message=FALSE, cache=TRUE}
+lambda <- 0.8
+k_geom <- 30
+npcs <- 50
+
+set.seed(seed)
+spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
+spe <- Banksy::runBanksyPCA(spe, lambda = lambda, npcs = npcs)
+spe <- Banksy::clusterBanksy(spe, lambda = lambda, npcs = npcs, resolution = 0.5)
+
+k <- grep("^clust", names(colData(spe)))
+names(colData(spe))[k] <- "Banksy_clusters"
+table(spe$Banksy_clusters <- as.factor(spe$Banksy_clusters))
+```
+
+
+### Spatially-aware clustering: Encoder-based methods
+
+1. Introduction of encoder-based methods
+2. INtroduction of CellCharter methods specifically
+3. Other methods: STAGATE PROST SpaceFlow
+
+```{python, }
+import cellcharter as cc
+import squidpy as sq
+import anndata as ad
+import numpy as np
+import pandas as pd
+
+#TODO add adata conversion of raw spe data
+adata = 
+seed = 2025
+random.seed(seed)
+scvi.settings.seed = seed
+
+# Variational autoencoder for feature extraction
+scvi.model.SCVI.setup_anndata(adata, layer="counts")
+model = scvi.model.SCVI(adata)
+model.train(early_stopping=True, enable_progress_bar=False)
+adata.obsm['X_scVI'] = model.get_latent_representation(adata).astype(np.float32)
+
+# Getting neighborhood aggregation
+sq.gr.spatial_neighbors(adata, library_key='sample', coord_type='generic', 
+                        delaunay=True, spatial_key='spatial_fov', percentile=99)
+cc.gr.aggregate_neighbors(adata, n_layers=3, use_rep='X_scVI', 
+                          out_key='X_cellcharter', sample_key='sample')
+
+# Clustering by scanning a range of data number
+model = cc.tl.Cluster(n_clusters=14, random_state=seed)
+model.fit(adata, use_rep='X_cellcharter')
+
+label_df = pd.DataFrame({"label":model.predict(adata, use_rep='X_cellcharter')}) 
+label_df[["label"]].value_counts()
+```
+
+### Comparison and evaluation of methods
+
+* Visualization (Align the cluster labels before running it)
+* Smoothness entropy checking
+* Some other evaluation metrics?
+
+```{r Align all the methods}
+df <- data.frame(colData(spe), spatialCoords(spe))
+
+columns <- c("Banksy_clusters", "Leiden_clusters", "CellCharter_clusters")
+
+for (c in columns){
+    hung <- clue::solve_LSAP(table(df[,"Banksy_clusters"], df[,c]), 
+                             maximum = TRUE)
+    lookup <- cbind(seq_along(hung), levels(df[[c]])[hung])
+    levels(df[,c]) <- lookup[order(as.integer(lookup[,2])),1]
+    df[,c] <- as.factor(as.character(df[,c]))
+}
+```
+
+```{r plot-xy-k-joint, fig.width=8, fig.height=3}
+#| collapse: true
+nk <- max(
+    length(unique(df$Leiden_clusters)), 
+    length(unique(df$Banksy_clusters)),
+    length(unique(df$CellCharter_clusters)))
+pal <- hcl.colors(nk, "Spectral")
+ggplot(df, 
+    aes(x_centroid, y_centroid, col=Leiden_clusters)) +
+    ggtitle("SNN graph-based Louvain clustering") +
+ggplot(df, 
+    aes(x_centroid, y_centroid, col=Banksy_clusters)) +
+    ggtitle(expression("Banksy clustering ("*lambda~"0.2)")) +
+ggplot(df, 
+    aes(x_centroid, y_centroid, col=CellCharter_clusters)) +
+    ggtitle("CellCharter clustering") +
+plot_layout(nrow=1) &
+    geom_point(shape=16, stroke=0, size=0.1) &
+    scale_color_manual(values=pal) & theme_xy &
+    guides(col=guide_legend(override.aes=list(size=1))) & 
+    theme(plot.title = element_text(size = 8))
+```
+
+### Other spatially-aware clustering methods: Bayesian-inference methods 
+
+* BASS
+* DR.SC
+
+### (Collapse) Effect of configurations on the results
+
+* Cross-methods ARI validation
+
+### (Collapse) Scalability of clusteirng methods on the results
+
+
+## Differential Expression Analysis
+
+```{r DEG analysis for leiden clustering}
+#| code-fold: true
+
+getPBS <- function(spe, clustering){
+  mgs <- findMarkers(spe, groups=spe[[clustering]], direction="up")
+  top <- lapply(mgs, \(.) rownames(.)[.$Top <= 1])
+  top <- unique(unlist(top))
+  pbs <- aggregateAcrossCells(spe, 
+      ids=spe[[clustering]], subset.row=top, 
+      use.assay.type="logcounts", statistics="mean")
+  return(pbs)
+}
+
+pbsLeiden <- getPBS(spe = spe, clustering = "Leiden_clustering")
+pbsBanksy <- getPBS(spe = spe, clustering = "Banksy_clustering")
+
+HLeiden <- plotHeatmap(pbsLeiden, 
+    colour_columns_by="Leiden_clusters", fontsize=9,
+    features=top, center=TRUE, scale=TRUE,
+    cluster_cols=FALSE, cluster_rows=FALSE)
+HBanksy <- plotHeatmap(pbsBanksy, 
+    colour_columns_by="Banksy_clusters", fontsize=9,
+    features=top, center=TRUE, scale=TRUE,
+    cluster_cols=FALSE, cluster_rows=FALSE)
+
+grid.arrange(HLeiden$gtable, HBanksy$gtable, ncol = 2)
+```
+
+```{r plot-xy-expr, fig.width=4, fig.height=3}
+#| collapse: TRUE
+es <- as.matrix(t(logcounts(spe)[top, ]))
+fd <- data.frame(df, es, check.names=FALSE)
+ggplot(fd, aes(x_centroid, y_centroid, col=KRT14)) +
+    coord_equal(expand=FALSE) +
+    geom_point(shape=16, stroke=0, size=0.2) +
+    scale_color_gradientn(colors=c("navy", "red", "gold", "ivory")) +
+    theme_xy + theme(legend.key.height=unit(1, "lines"))
+```
+
+### Comparison of DEGs in different spatially-aware clustering cases (collapse)
+
+## Appendix
+
+### Existing Benchmark
+
+* https://doi.org/10.1093/bfgp/elae040
+* https://doi.org/10.1186/s13059-024-03361-0 
+* https://doi.org/10.1038/s41592-024-02325-3 
+* https://doi.org/10.1016/j.csbj.2023.11.055 
+
+### Saving data
+
+```{r save-data}
+# default to transcription-based clustering
+spe$k <- spe$k_tx; saveRDS(spe, "img-spe_cl.rds")
+```
+
+### Session info
+
+## References {.unnumbered}
