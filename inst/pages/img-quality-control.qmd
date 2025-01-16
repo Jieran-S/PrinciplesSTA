@@ -91,13 +91,13 @@ The easiest way to visualize the data is by representing the cells by its centro
 Here, we visualize the CosMX data.
 
 ```{r plot-cosmx-xy, out.width="66%", fig.align="center"}
-plotCentroidsSPE(cosmx)
+plotCentroids(cosmx)
 ```
 
 A similar plot can be obtained for the Xenium data.
 
 ```{r plot-xenium-xy, out.width="66%", fig.align="center"}
-plotCentroidsSPE(xenium)
+plotCentroids(xenium)
 ```
 
 It may be useful to visualize the centroids color-coded by cell features: for instance the CosMX output includes the fluorescence intensities of a set of antibodies that mark the nuclei and cell surfaces.
@@ -105,19 +105,19 @@ It may be useful to visualize the centroids color-coded by cell features: for in
 Here, we show the distribution of DAPI across the CosMX sample.
 
 ```{r plot-cosmx-xy-dapi,out.width="66%", fig.align="center"}
-plotCentroidsSPE(cosmx, colour_by = "Mean.DAPI")
+plotCentroids(cosmx, colour_by = "Mean.DAPI")
 ```
 
 While plotting centroids is good for a overview of the macro tissue structure, when zooming into a specific area, the centroids do not provide the full information. For instance, looking at the first FOV of the CosMX data it is hard to distinguish between areas with low cell densities and areas with large cells.
 
 ```{r plot-cosmx-xy-fov1, out.width="66%", fig.align="center"}
-plotCentroidsSPE(cosmx[,cosmx$fov == 1], size = 1)
+plotCentroids(cosmx[,cosmx$fov == 1], size = 1, colour_by = "Mean.DAPI")
 ```
 
 We can improve the visualization by leveraging the polygons stored in the object from the cell segmentation step.
 
 ```{r plot-cosmx-polu-fov1, out.width="66%", fig.align="center"}
-plotPolygonsSPE(cosmx[,cosmx$fov == 1])
+plotPolygons(cosmx[,cosmx$fov == 1], colour_by = "Mean.DAPI")
 ```
 
 The same function can be applied to Xenium data, but here we do not have independent FOVs. Hence, we define a zoom area based on the slide's global coordinates.
@@ -125,7 +125,7 @@ The same function can be applied to Xenium data, but here we do not have indepen
 ```{r plot-xenium-poly, out.width="66%", fig.align="center"}
 box <- (spatialCoords(xenium)[,1] >= 4000 & spatialCoords(xenium)[,1] <= 6000) &
   (spatialCoords(xenium)[,2] >= 0 & spatialCoords(xenium)[,2] <= 2000)
-plotPolygonsSPE(xenium[,box], colour_by = "transcript_counts")
+plotPolygons(xenium[,box], colour_by = "transcript_counts")
 ```
 
 Note that while it is possible to use `plotPolygonsSPE` on the entire slide, this may be slow and require large amounts of RAM. Since the polygons at that zoom level will be very small and practically indistinguishable to points, we advise against generating a whole-slide polygons plot.
@@ -143,7 +143,7 @@ plotCellsFovs(cosmx)
 In addition, the `plotZoomFovsMap` provides a way to zoom on a subset of FOVs, while also visualizing the global structure of the tissue.
 
 ```{r plot-fov-zoom, out.width="66%", fig.align="center", eval=FALSE}
-plotZoomFovsMap(cosmx, fovs=1)
+plotZoomFovsMap(cosmx, fovs=1, colour_by = "Mean.DAPI")
 ```
 
 ## Simple QC Metrics
@@ -167,7 +167,7 @@ Finally, imaging-based platforms include, in addition to transcripts data, morph
 ```{r qc-metrics-xenium}
 ## These lines are needed temporarily because we are working with a STexampleData object
 ## rather than one imported from the 10X Genomics output
-colData(xenium) <- computeAspectRatioFromPolygons(xenium$polygons, colData(xenium))
+xenium$AspectRatio <- computeAspectRatioFromPolygons(xenium$polygons, colData(xenium))
 xenium$Area_um <- xenium$cell_area
 
 xenium <- spatialPerCellQC(xenium)
@@ -227,14 +227,14 @@ We can also view the distribution of these metrics across the tissue slide by pl
 
 ```{r plot-qc-xy-cosmx, fig.width=9, fig.height=3}
 #| code-fold: true
-plotCentroidsSPE(cosmx, colour_by = "total")
-plotCentroidsSPE(cosmx, colour_by = "Area_um")
+plotCentroids(cosmx, colour_by = "total")
+plotCentroids(cosmx, colour_by = "Area_um")
 ```
 
 ```{r plot-qc-xy-xenium, fig.width=9, fig.height=3}
 #| code-fold: true
-plotCentroidsSPE(xenium, colour_by = "total_counts")
-plotCentroidsSPE(xenium, colour_by = "cell_area")
+plotCentroids(xenium, colour_by = "total_counts")
+plotCentroids(xenium, colour_by = "cell_area")
 ```
 
 In a bivariate setting, however, we observe, as expected, a positive relationship between counts and area. However such dependencies is not always linear and may exhibit a bimodal distribution.
@@ -270,8 +270,8 @@ An useful metric to explore this issue is the `log2CountArea`, which estimates t
 ```{r tx-density, fig.width=4, fig.height=3}
 #| code-fold: true
 
-plotCentroidsSPE(cosmx, colour_by = "log2CountArea")
-plotCentroidsSPE(xenium, colour_by = "log2CountArea")
+plotCentroids(cosmx, colour_by = "log2CountArea")
+plotCentroids(xenium, colour_by = "log2CountArea")
 ```
 
 Considering the spatial distribution of the transcript density, it is reasonable to assume that they represent distinct transcriptional states (not technical artefacts), with the exception of a small area at the bottom-center of the Xenium slide.
