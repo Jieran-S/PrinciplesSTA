@@ -54,7 +54,10 @@ Imports:
     STexampleData, 
     spatialLIBD,
     tidyr,
-    zoo
+    zoo,
+    magick,
+    EBImage,
+    RBioFormats
 Suggests: 
     BiocManager, 
     BiocVersion, 
