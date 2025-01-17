@@ -14,19 +14,17 @@ other
 ```{r deps, message=FALSE, warning=FALSE}
 #library(dplyr)
 #library(tidyr)
-#library(patchwork)
+library(patchwork)
 library(ggspavis)
 library(scran)
 library(scater)
 library(SpatialExperiment)
 library(igraph)
 library(Banksy)
-library(clue)
-library(basilisk)
 ```
 
 
-```{r load data, message=FALSE, warning=FALSE, eval=TRUE}
+```{r load data, message=FALSE, warning=FALSE, eval=FALSE}
 seed <- 2025
 # load data from previous section
 spe <- readRDS("img-spe_qc.rds")
@@ -47,7 +45,7 @@ Library size-based normalization as is typical for scRNA-seq data has been shown
 For lack of a better approach, we here use standard log-library size normalization.
 We caution readers, however, to keep an eye out in the literature for attempts to provide a better strategy.
 
-```{r calc-norm, eval=TRUE}
+```{r calc-norm, eval=FALSE}
 spe <- scater::logNormCounts(spe)
 ```
 
@@ -58,7 +56,7 @@ spe <- scater::logNormCounts(spe)
 1. Using Leiden clustering to showcase the results
 2. Can also use spatialPCA or BanksyPCA results for some already spatially-aware clusterings
 
-```{r leiden clustering, eval=TRUE}
+```{r leiden clustering, cache=TRUE, eval=FALSE}
 spe <- scater::runPCA(spe, ncomponents=30) 
 g <- scran::buildSNNGraph(spe, use.dimred="PCA", k=30)
 
@@ -76,7 +74,7 @@ table(spe$Leiden_clusters <- factor(k, seq_along(unique(k))))
 `r BiocStyle::Biocpkg("BANKSY")` [@Singhal2024-BANKSY] essentially computes PCs that are weighted by embeds cells in a product space of their own and the local neighborhood transcriptome, representing cell state and microenvironment.
 A key parameter for this method is $\lambda\in[0,1]$ (argument `lambda` in `runBanksyPCA()`), which controls the amount of spatial information to incorporate; specifically, **when $\lambda=0$, `BANKSY` reduces to non-spatial clustering**.
 
-```{r clust-sp, message=FALSE, cache=TRUE, eval=TRUE}
+```{r clust-sp, message=FALSE, cache=TRUE, eval=FALSE}
 lambda <- 0.8
 k_geom <- 30
 npcs <- 50
@@ -84,7 +82,7 @@ npcs <- 50
 set.seed(seed)
 spe <- Banksy::computeBanksy(spe, assay_name = "logcounts", k_geom = k_geom)
 spe <- Banksy::runBanksyPCA(spe, lambda = lambda, npcs = npcs)
-spe <- Banksy::clusterBanksy(spe, lambda = lambda, npcs = npcs, resolution = 0.27)
+spe <- Banksy::clusterBanksy(spe, lambda = lambda, npcs = npcs, resolution = 0.3)
 
 k <- grep("^clust", names(colData(spe)))
 names(colData(spe))[k] <- "Banksy_clusters"
@@ -98,7 +96,8 @@ table(spe$Banksy_clusters <- factor(spe$Banksy_clusters,
 2. INtroduction of CellCharter methods specifically
 3. Other methods: STAGATE PROST SpaceFlow
 
-```{r set up python environment, results='hide', warning=FALSE, message=FALSE}
+```{r}
+library(basilisk)
 # get basilisk
 py_env <- basilisk::BasiliskEnvironment(
   envname="CellCharter_env",
@@ -118,20 +117,17 @@ py_env <- basilisk::BasiliskEnvironment(
 )
 
 # run basilisk
+print(py_env)
 proc <- basilisk::basiliskStart(py_env)
-
-success <- basilisk::basiliskRun(proc, function() {
-  cellcharter <- reticulate::import("cellcharter")
-  scvi <- reticulate::import("scvi")
-  return(TRUE)
-})
 ```
 
-```{r activate python env}
+```{r}
+library(reticulate)
 reticulate::use_condaenv(basilisk::obtainEnvironmentPath(py_env))
+print(reticulate::py_config())
 ```
 
-```{python run cellcharter}
+```{python}
 import cellcharter as cc
 import scvi
 import squidpy as sq
@@ -140,9 +136,6 @@ import numpy as np
 import pandas as pd
 import random
 
-print("PLEASE WORK YOU LITTLE SNAKE")
-
-"""
 adata = ad.read_h5ad("spe.h5ad")
 adata.layers["counts"] = adata.X
 seed = 2025
@@ -180,8 +173,9 @@ table(spe$CellCharter_clusters <- as.factor(cc_labels))
 * Visualization (Align the cluster labels before running it)
 * Smoothness entropy checking
 
-```{r plot-xy-k-joint, fig.width=8, fig.height=3, eval=TRUE}
+```{r plot-xy-k-joint, fig.width=8, fig.height=3, eval=FALSE}
 #| collapse: true
+df <- data.frame(colData(spe), spatialCoords(spe))
 nk <- max(
     length(unique(df$Leiden_clusters)), 
     length(unique(df$Banksy_clusters)),
@@ -210,7 +204,7 @@ This can be misleading, as we will tend to see only highly abundant subpopulatio
 
 To better distinguish between different subpopulations, we can instead generate separate spatial plots with one subpopulation highlighted at a time:
 
-```{r plot-xy-k-split, collapse=TRUE, fig.width=12, fig.height=4, eval=TRUE}
+```{r plot-xy-k-split, collapse=TRUE, fig.width=12, fig.height=4, eval=FALSE}
 ps <- lapply(levels(df$Banksy_clusters), \(.) 
     ggplot(df, aes(x_centroid, y_centroid, col=(Banksy_clusters == .))) + 
     scale_color_manual(values=c("navy", "cyan")) + ggtitle(.))
@@ -224,8 +218,9 @@ wrap_plots(ps, nrow=2) &
 ```
 
 
-### Other spatially-aware clustering methods: Bayesian-inference methods 
+### Other spatially-aware clustering methods: Probability statistics-based methods 
 
+* See more example in @sec-seq-clustering-de
 * BASS
 * DR.SC
 
@@ -242,75 +237,82 @@ wrap_plots(ps, nrow=2) &
 
 For details on identifying genes that are differentially expressed (DE) between groups of cells, we refer readers to [OSCA](https://bioconductor.org/books/3.19/OSCA.basic/marker-detection.html); a standard approach is given below, visualizing the average expression of exemplary markers across clusters:
 
-```{r DEG analysis, eval=TRUE}
+```{r DEG analysis, eval=FALSE, fig.width=8, fig.height=4}
 #| code-fold: true
+#| label: fig-charts
+#| fig-cap: "Charts"
+#| fig-subcap: 
+#|   - "First"
+#|   - "Second"
+#| layout-ncol: 2
+
 getTopDEGs <- function(spe, clustering){
   mgs <- scran::findMarkers(spe, groups=spe[[clustering]], direction="up")
-  top <- lapply(mgs, \(.) rownames(.)[.$Top <= 1][1:min(length(.), 5)])
+  top <- lapply(mgs, \(.) rownames(.)[.$Top <= 1])
   top <- unique(unlist(top))
+  top <- top[top %in% rownames(assays(spe)[["logcounts"]])]
   
   pbs <- aggregateAcrossCells(spe, 
     ids=spe[[clustering]], subset.row=top, 
     use.assay.type="logcounts", statistics="mean")
   
-  hm <- scater::plotHeatmap(pbs, 
-    colour_columns_by=clustering, fontsize=9,
-    features=top, center=TRUE, scale=TRUE,
-    cluster_cols=FALSE, cluster_rows=FALSE)
-  
-  return(hm)
+  return(pbs)
 }
-topLeiden <- getTopDEGs(spe = spe, clustering = "Leiden_clusters")
-topBanksy <- getTopDEGs(spe = spe, clustering = "Banksy_clusters")
+pbsLeiden <- getTopDEGs(spe = spe, clustering = "Leiden_clusters")
+pbsBanksy <- getTopDEGs(spe = spe, clustering = "Banksy_clusters")
 
-pLeiden <- aggregateAcrossCells(spe, 
-    ids=spe$Leiden_clusters, subset.row=topLeiden, 
-    use.assay.type="logcounts", statistics="mean")
-pBanksy <- aggregateAcrossCells(spe, 
-    ids=spe$Banksy_clusters, subset.row=topBanksy, 
-    use.assay.type="logcounts", statistics="mean")
+scater::plotHeatmap(pbsLeiden, 
+                    colour_columns_by="Leiden_clusters", fontsize=9,
+                    features=rownames(pbsLeiden), center=TRUE, scale=TRUE,
+                    cluster_cols=FALSE, cluster_rows=FALSE)
 
-HLeiden <- scater::plotHeatmap(pLeiden, 
-    colour_columns_by="Leiden_clusters", fontsize=9,
-    features=topLeiden, center=TRUE, scale=TRUE,
-    cluster_cols=FALSE, cluster_rows=FALSE)
-HBanksy <- scater::plotHeatmap(pBanksy, 
-    colour_columns_by="Banksy_clusters", fontsize=9,
-    features=topBanksy, center=TRUE, scale=TRUE,
-    cluster_cols=FALSE, cluster_rows=FALSE)
-
-grid.arrange(HLeiden$gtable, HBanksy$gtable, ncol = 2)
+scater::plotHeatmap(pbsBanksy, 
+                    colour_columns_by="Banksy_clusters", fontsize=9,
+                    features=rownames(pbsBanksy), center=TRUE, scale=TRUE,
+                    cluster_cols=FALSE, cluster_rows=FALSE)
 ```
 
-```{r plot-xy-expr, fig.width=4, fig.height=3, eval=TRUE}
+```{r plot-xy-expr, fig.width=4, fig.height=3, eval=FALSE, message=FALSE}
 #| collapse: TRUE
-es <- as.matrix(t(logcounts(spe)[top, ]))
+es <- as.matrix(t(logcounts(spe)[rownames(pbsBanksy), ]))
 fd <- data.frame(df, es, check.names=FALSE)
-ggplot(fd, aes(x_centroid, y_centroid, col=KRT14)) +
+gene_plot <- ggplot(fd, aes(x_centroid, y_centroid, col=MZB1)) +
     coord_equal(expand=FALSE) +
     geom_point(shape=16, stroke=0, size=0.2) +
     scale_color_gradientn(colors=c("navy", "red", "gold", "ivory")) +
     theme_xy + theme(legend.key.height=unit(1, "lines"))
+
+cluster_plot <- ggplot(df, aes(x_centroid, y_centroid, col=(Banksy_clusters ==3))) + 
+  geom_point(shape=16, stroke=0, size=0.2) +
+  scale_color_manual(values=c("navy", "cyan")) + 
+  ggtitle("Banksy Cluster 3") + 
+  coord_equal(expand=FALSE) +
+  theme_void() + 
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5),
+        panel.background=element_rect(fill="black", color="white"))
+
+gene_plot | cluster_plot
 ```
 
 ### Comparison of DEGs in different spatially-aware clustering cases (collapse)
 
 ## Appendix
 
-### Existing Benchmark
+### Saving {.unnumbered}
+
+```{r save-data, eval=FALSE}
+# default to transcription-based clustering
+spe$k <- spe$Banksy_clusters; saveRDS(spe, "img-spe_cl.rds")
+```
+
+### Benchmarks {.unnumbered}
 
 * https://doi.org/10.1093/bfgp/elae040
 * https://doi.org/10.1186/s13059-024-03361-0 
 * https://doi.org/10.1038/s41592-024-02325-3 
 * https://doi.org/10.1016/j.csbj.2023.11.055 
 
-### Saving data
+### References {.unnumbered}
 
-```{r save-data, eval=TRUE}
-# default to transcription-based clustering
-spe$k <- spe$k_tx; saveRDS(spe, "img-spe_cl.rds")
-```
 
-### Session info
-
-## References {.unnumbered}
