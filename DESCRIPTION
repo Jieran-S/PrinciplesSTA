@@ -54,7 +54,8 @@ Imports:
     STexampleData, 
     spatialLIBD,
     tidyr,
-    zoo
+    zoo,
+    clue
 Suggests: 
     BiocManager, 
     BiocVersion, 
