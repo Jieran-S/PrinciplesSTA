@@ -125,7 +125,7 @@ The same function can be applied to Xenium data, but here we do not have indepen
 ```{r plot-xenium-poly, out.width="66%", fig.align="center"}
 box <- (spatialCoords(xenium)[,1] >= 4000 & spatialCoords(xenium)[,1] <= 6000) &
   (spatialCoords(xenium)[,2] >= 0 & spatialCoords(xenium)[,2] <= 2000)
-plotPolygons(xenium[,box], colour_by = "transcript_counts")
+plotPolygons(xenium[,box], colour_by = "transcript_counts", poly_column = "polygons.global")
 ```
 
 Note that while it is possible to use `plotPolygonsSPE` on the entire slide, this may be slow and require large amounts of RAM. Since the polygons at that zoom level will be very small and practically indistinguishable to points, we advise against generating a whole-slide polygons plot.
@@ -142,7 +142,7 @@ plotCellsFovs(cosmx)
 
 In addition, the `plotZoomFovsMap` provides a way to zoom on a subset of FOVs, while also visualizing the global structure of the tissue.
 
-```{r plot-fov-zoom, out.width="66%", fig.align="center", eval=FALSE}
+```{r plot-fov-zoom, out.width="100%", fig.align="center"}
 plotZoomFovsMap(cosmx, fovs=1, colour_by = "Mean.DAPI")
 ```
 
@@ -167,7 +167,7 @@ Finally, imaging-based platforms include, in addition to transcripts data, morph
 ```{r qc-metrics-xenium}
 ## These lines are needed temporarily because we are working with a STexampleData object
 ## rather than one imported from the 10X Genomics output
-xenium$AspectRatio <- computeAspectRatioFromPolygons(xenium$polygons, colData(xenium))
+xenium$AspectRatio <- computeAspectRatioFromPolygons(xenium$polygons)
 xenium$Area_um <- xenium$cell_area
 
 xenium <- spatialPerCellQC(xenium)
@@ -225,13 +225,13 @@ Note that the cell area is much bigger in Xenium, mostly because of the differen
 
 We can also view the distribution of these metrics across the tissue slide by plotting cell centroids colored by total counts and cell area, respectively:
 
-```{r plot-qc-xy-cosmx, fig.width=9, fig.height=3}
+```{r plot-qc-xy-cosmx}
 #| code-fold: true
 plotCentroids(cosmx, colour_by = "total")
 plotCentroids(cosmx, colour_by = "Area_um")
 ```
 
-```{r plot-qc-xy-xenium, fig.width=9, fig.height=3}
+```{r plot-qc-xy-xenium}
 #| code-fold: true
 plotCentroids(xenium, colour_by = "total_counts")
 plotCentroids(xenium, colour_by = "cell_area")
@@ -243,7 +243,7 @@ In a bivariate setting, however, we observe, as expected, a positive relationshi
 #| code-fold: true
 ggplot(df, aes(Area_um, total)) + 
     geom_point(shape=16, size=0.1, alpha=0.1) +
-    geom_density_2d() +
+    geom_smooth(method="lm", color = "blue") +
     scale_x_continuous(trans="log10") +
     scale_y_continuous(trans="log10") +
     theme_minimal() + theme(
@@ -253,7 +253,7 @@ ggplot(df, aes(Area_um, total)) +
 
 ggplot(dfx, aes(cell_area, total_counts)) + 
     geom_point(shape=16, size=0.1, alpha=0.1) +
-    geom_density_2d() +
+    geom_smooth(method="lm", color = "blue") +
     scale_x_continuous(trans="log10") +
     scale_y_continuous(trans="log10") +
     theme_minimal() + theme(
@@ -267,7 +267,7 @@ When groups of cells are merged together, for example, we might observe fewer co
 
 An useful metric to explore this issue is the `log2CountArea`, which estimates the transcript density for each cell.
 
-```{r tx-density, fig.width=4, fig.height=3}
+```{r tx-density}
 #| code-fold: true
 
 plotCentroids(cosmx, colour_by = "log2CountArea")
@@ -276,10 +276,208 @@ plotCentroids(xenium, colour_by = "log2CountArea")
 
 Considering the spatial distribution of the transcript density, it is reasonable to assume that they represent distinct transcriptional states (not technical artefacts), with the exception of a small area at the bottom-center of the Xenium slide.
 
-## Filtering
+### CosMX-specific considerations
 
-- Medcouple on individual metrics
-- Filtering based on QS
+Recall that the CosMX platform allows the user to place independent FOV across the tissue slide and does not stitch together adjacent FOVs.
+
+Assuming FOV placement was done with the aim of capturing biologically interesting regions of the tissue, we would expect every FOV to capture a decent number of cells.
+Issues in image registration or IF staining, however, may affect spot calling and cell segmentation, and can yield FOVs with virtually no cells.
+We thus advice inspecting the number of cells across FOVs:
+
+```{r cosmx-plot-ns, fig.width=4, fig.height=2}
+#| code-fold: true
+ns <- as.data.frame(table(fov=cosmx$fov), responseName="n_cells")
+ggplot(ns, aes(fov, n_cells)) + geom_col() +
+    scale_x_discrete(breaks=c(1, seq(5, max(cosmx$fov), 5))) +
+    scale_y_continuous(limits=c(0, 6e3), n.breaks=4) +
+    labs(x="field of view (FOV)", y="# cells") +
+    coord_cartesian(expand=FALSE) + theme_minimal()
+```
+
+It is generally also worth checking that basic QC metrics do not vary across FOVs.
+Of course, such effects will also be driven by differences in subpopulation composition across FOVs.
+However, gross differences in detection efficacy, IF staining, spot calling, segmentation etc. often still manifest in FOV-level shifts in IF stains and/or RNA target, negative probe, system control counts.
+A simple spot-check is the following type of visualization, but more thorough investigation is advisable 'in the wild', especially so in challenging types of tissue:
+
+```{r cosmx-plot-qc, warning=FALSE, fig.width=12, fig.height=4}
+#| code-fold: true
+df <- data.frame(colData(cosmx))
+vs <- "Mean"
+vs <- grep(vs, names(df), value=TRUE)
+vs <- c(vs, "Area_um", "log2CountArea", "detected", "total", "ctrl_total_ratio")
+fd <- pivot_longer(df, vs) |>
+    mutate(value=case_when(
+        grepl("Mean", name) ~ asinh(value),
+        grepl("total", name) ~ log10(value),
+        grepl("^Area", name) ~ log10(value),
+        TRUE ~ value))
+ggplot(fd, aes(factor(fov), value)) + 
+    facet_wrap(~name, nrow=2, scales="free_y") +
+    geom_boxplot(linewidth=0.2, outlier.size=0.2) +
+    scale_x_discrete(breaks=c(1, seq(5, max(cosmx$fov), 5))) +
+    labs(x="field of view (FOV)", y=NULL) + theme_minimal()
+```
+
+In our example, DAPI stains and RNA target counts (`total`) are fairly constant across FOVs.
+FOVs 1-4 have decreased signal for CD3 and CD45, however, this might be related to fewer immune cells being present in these regions rather than technical artefacts. 
+Taken together, we cannot deem any FOVs as being obviously problematic here.
+
+### Border effects
+
+Particularly in CosMx, lack of FOV stitching during cell segmentation can result in fractured and possibly duplicated cells.
+To investigate potential artefacts related to this, we can use the distance to FOV border calculated above.
+
+We can *roughly* estimate cell radii as $A=\pi r^2$ $\leftrightarrow r=\sqrt{A/\pi}$, and use this as a threshold on FOV border distances.
+In other words, we flag a cell when its centroid is closer to any FOV border than the radius of an average circular cell:
+
+```{r cosmx-est-r}
+(r <- sqrt(mean(cosmx$Area)/pi))
+```
+
+Next, let us visualize total RNA counts against distance to FOV borders, setting the above threshold on the latter; we also include rolling means to better highlight global trends:
+
+```{r comsmx-plot-ds, warning=FALSE}
+#| code-fold: true
+df <- data.frame(colData(cosmx))
+
+p1 <- df |>
+  ggplot(aes(dist_border, detected)) +
+  geom_point(color="grey", size=0.1) +
+  geom_smooth() +
+  xlab("Minimum distance to border (pixel)") +
+  ylab("Number of detected genes") +
+  xlim(0, 300) +
+  ylim(0, 400) +
+  geom_vline(xintercept = r, linetype = "longdash") +
+  geom_vline(xintercept = 50, linetype = "dashed") +
+  ggtitle("Detected genes")  + theme_minimal()
+
+p2 <- df |>
+  ggplot(aes(dist_border, total)) +
+  geom_point(color="grey", size=0.1) +
+  geom_smooth() +
+  xlab("Minimum distance to border (pixel)") +
+  ylab("Total count") +
+  xlim(0, 500) +
+  ylim(0, 2000) +
+  geom_vline(xintercept = r, linetype = "longdash") + 
+  geom_vline(xintercept = 50, linetype = "dashed") +
+  theme_minimal() +
+  ggtitle("Total count")
+
+p3 <- df |>
+  ggplot(aes(dist_border, Area_um)) +
+  geom_point(color="grey", size=0.1) +
+  geom_smooth() +
+  xlab("Minimum distance to border (pixel)") +
+  ylab("Cell Area (um)") +
+  xlim(0, 500) +
+  ylim(0, 200) +
+  geom_vline(xintercept = r, linetype = "longdash") + 
+  geom_vline(xintercept = 50, linetype = "dashed") +
+  theme_minimal() +
+  ggtitle("Cell Area")
+
+p4 <- df |>
+  ggplot(aes(dist_border_x, log2AspectRatio)) +
+  geom_point(color="grey", size=0.1) +
+  geom_smooth() +
+  xlab("Minimum distance to x border (pixel)") +
+  ylab("log2 Aspect Ratio") +
+  xlim(0, 500) +
+  geom_vline(xintercept = r, linetype = "longdash") + 
+  geom_vline(xintercept = 50, linetype = "dashed") +
+  theme_minimal() +
+  ggtitle("Aspect Ratio")
+
+p5 <- df |>
+  ggplot(aes(dist_border_y, log2AspectRatio)) +
+  geom_point(color="grey", size=0.1) +
+  geom_smooth() +
+  xlab("Minimum distance to y border (pixel)") +
+  ylab("log2 Aspect Ratio") +
+  xlim(0, 500) +
+  geom_vline(xintercept = r, linetype = "longdash") + 
+  geom_vline(xintercept = 50, linetype = "dashed") +
+  theme_minimal() +
+  ggtitle("Aspect Ratio")
+
+(p2 + p3) / (p4 + p5)
+```
+
+We observe about `r round(100*mean(df$dist_border < r), 1)`% of cells falling below $r$ (long dashed line) and `r round(100*mean(df$dist_border < 50), 1)`% of cells falling below 50 pixels (short dashed line).
+
+These cells exhibit lower total counts and smaller segmented areas, as well as a distorsion in their aspect ratio (thin cells close to the y border and broad cells close to the x boder).
+
+To mitigate potential artefacts in downstream analyses, we may choose to filter out these cells, or otherwise flag them as potentially problematic events to be kept a cautionary eye on. In addition, `r BiocStyle::Biocpkg("SpaceTrooper")` uses the distance to border combined with the aspect ratio in its combined quality score calculations (see below).
+
+
+```{r cosmx-plot-ex}
+#| code-fold: true
+cosmx$ex <- df$dist_border < 50
+plotCentroids(cosmx, colour_by = "ex") +
+  scale_color_manual(values = c("grey", "blue"))
+
+## plotPolygons(cosmx[,cosmx$fov %in% c(7, 8, 11, 12)], colour_by = "ex")
+```
+
+## Identification of low-quality cells
+
+We can now use the QC metrics calculated above to flag low-quality cells. 
+
+First, we can inspect individual metrics looking for outliers in their distribution. Depending on the metric, we are interested in low-end or high-end outliers (or both). For instance, we may want to exclude too small or too large cells as potential artifacts.
+
+`r BiocStyle::Biocpkg("SpaceTrooper")` provides a function to compute outliers of the distribution of any QC metric present in the colData of the object. We can then visualize the distribution and the outlier threshold with a histogram.
+
+```{r outlier-cosmx-area}
+cosmx <- computeSpatialOutlier(cosmx, compute_by="Area_um", method="mc")
+plotMetricHist(cosmx, metric="Area_um", use_fences="Area_um_outlier_mc")
+```
+
+```{r outlier-cosmx-tot}
+cosmx <- computeSpatialOutlier(cosmx, compute_by="total", method="mc")
+plotMetricHist(cosmx, metric="total", use_fences="total_outlier_mc")
+```
+
+For instance, in the CosMX data, we identify `r sum(cosmx$Area_um_outlier_mc)` outliers for cell area and `r sum(cosmx$total_outlier_mc)` outliers for total counts. 
+
+```{r outlier-xenium-area}
+xenium <- computeSpatialOutlier(xenium, compute_by="cell_area", method="mc")
+plotMetricHist(xenium, metric="cell_area", use_fences="cell_area_outlier_mc")
+```
+
+```{r outlier-xenium-tot}
+xenium <- computeSpatialOutlier(xenium, compute_by="total_counts", method="mc")
+plotMetricHist(xenium, metric="total_counts", use_fences="total_counts_outlier_mc")
+```
+
+In the Xenium data, we identify `r sum(xenium$cell_area_outlier_mc)` outliers for cell area and `r sum(xenium$total_counts_outlier_mc)` outliers for total counts. However, note that the because of the naive cell segmentation algorithm of Xenium v1, we expect some abnormally large cells in low-cell-density areas, which do not necessarily correspond to low-quality cells.
+
+Finally, we can compute an aggregated quality score, which combines a cell's transcript density, its aspect ratio and its distance from the FoV border (only for CosMx).
+
+```{r score-cosmx}
+cosmx <- computeQCScore(cosmx)
+cosmx <- computeFilterFlags(cosmx, fs_threshold=0.5)
+
+plotCentroids(cosmx, colour_by = "flag_score")
+plotCentroids(cosmx, colour_by = "is_fscore_outlier")
+```
+
+```{r score-xenium}
+xenium <- computeQCScore(xenium)
+xenium <- computeFilterFlags(xenium, fs_threshold=0.1)
+
+plotCentroids(xenium, colour_by = "flag_score")
+plotCentroids(xenium, colour_by = "is_fscore_outlier")
+```
+
+We can see how the quality score flags several cells close to FOV borders in the CosMX data and cells in the bottom-center damaged area in the Xenium data.
+
+In a stringent analysis we may want to remove low-quality cells, but this has to be done with caution: before finalizing to exclude any cells, it is recommendable to inspect where these fall in the tissue.
+We would expect low-quality cells to be distributed randomly, and otherwise to accumulate at the tissue borders or in regions were tissue was, for example, smudged, detached, necrotic etc.
+In general, **spatially organized clusters of excluded cells might indicate a bias towards exclude specific types of cells** (e.g., some immune cells tend to be smaller or might otherwise contain fewer contains due to the panel design).
+Whenever possible, we advice readers to cross-check visualizations like the following with a corresponding H&E stain of the tissue, considering possible experimental faults as well as their prior knowledge on tissue pathology.
+
 
 ## Appendix
 
