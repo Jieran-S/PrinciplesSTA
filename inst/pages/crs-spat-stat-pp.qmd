@@ -7,6 +7,8 @@ Point pattern analysis is a subfield of spatial statistics that focuses on the r
 
 The central `R` package to perform point pattern analysis is called `r BiocStyle::CRANpkg('spatstat')` [@baddeleySpatstatPackageAnalyzing2005]. The package `spatialFDA` creates an interface between `SpatialExperiment` objects and the `r BiocStyle::CRANpkg('spatstat')` library for easy integration into analysis workflows.
 
+Part of this vignette is based on the [pasta overview vignette ](https://robinsonlabuzh.github.io/pasta/00-overview-ppSOD.html) and [another vignette](https://robinsonlabuzh.github.io/pasta/01-imaging-univar-ppSOD.html) @emons2024pasta.
+
 ::: {.callout-note collapse="true" title="`ppp` object"}
 
 The central object in `r BiocStyle::CRANpkg('spatstat')` is called `ppp`. This object contains three attributes:
@@ -52,7 +54,7 @@ The intensity of the points can be uniform in space which is called homogeneous.
 
 ::: {.callout-note collapse="true" title="Estimating intensity"}
 
-```{r estimating intensity}
+```{r estimating intensity, message = FALSE, warning = FALSE}
 dfSpe <- .speToDf(spe)
 pp <- .dfToppp(dfSpe, marks = "Cluster")
 
@@ -86,7 +88,7 @@ Complete spatial randomness is the null scenario for a point pattern. It is char
 
 Ripley's $K$ is a well established function to assess correlation in a point pattern. It can be calculated within a mark or across marks. In essence, Ripley's $K$ quantifies the average number of points that fall in a $r$-neighbourhood of a chosen mark [@ripleySecondOrderAnalysisStationary1976; @baddeleySpatialPointPatterns2015 p. 132 ff.].
 
-```{r ripley}
+```{r ripley, message = FALSE, warning = FALSE}
 #| fig-width: 15
 #| fig-height: 10
 
@@ -125,7 +127,7 @@ A complementary approach to correlation analysis is spacing. There are three mai
 
 The nearest neighbour function $G$ quantifies the average nearest-neighbour distance over a radius range $r$ [@baddeleySpatialPointPatterns2015 p. 262].
 
-```{r nndist}
+```{r nndist, message = FALSE, warning = FALSE}
 #| fig-width: 15
 #| fig-height: 10
 
@@ -154,15 +156,54 @@ The analysis with Ripley's $K$ and the $G$ function are not contradictory. $G$ f
 
 ## Local Analysis
 
-### Local indicator of spatial association
+### Local indicators of spatial association
 
-::: {.callout-note collapse="true" title="itbeme"}
+The metrics shown before are an average over the entire window $W$. @anselinLocalIndicatorsSpatial1995 proposed an alternative approach which is termed local indicators of spatial association (LISA). Instead of a global average LISA shows the local contributions of each point to the overall metric [@baddeleySpatialPointPatterns2015 p. 247].  This is a general concept not only for point pattern analysis but for lattice data analysis as well [@anselinLocalIndicatorsSpatial1995; @anselinLocalIndicatorMultivariate2019].
 
-Anything can go in here (text/math, code chunks)...
+```{r localK, message = FALSE, warning = FALSE}
+#| fig-width: 10
+#| fig-height: 10
+# subset to only Invasive tumor cells 
+ppSub <- subset(pp, marks %in% "Invasive_Tumor")
+# restrict to a smaller window for computational reasons
+Window(ppSub) <- owin(c(3500,7524.087), c(1200,5475.691))
+# plot the point pattern
+plot(ppSub)
+# calculate LISA K curves
+resLocal <- localK(ppSub) 
 
-```r
-# do some fancy things
+# code adapted from 
+# https://robinsonlabuzh.github.io/pasta/01-imaging-univar-ppSOD.html
+
+df <- as.data.frame(resLocal)
+dfm <- df %>% pivot_longer(iso0001:iso1408, names_to = 'curve') 
+
+sel <- dfm %>% filter(r > 700.5630 & r < 702.4388) %>%
+  mutate(sel = value) %>% select(curve, sel)
+
+dfm <- dfm %>% left_join(sel)
+
+p <- ggplot(dfm, aes(x = r, y = value, group = curve, col = sel)) +
+  geom_line() +
+  theme_light() +
+  theme(legend.position = "none") +
+  scale_colour_viridis_c() + 
+  geom_line(aes(x = r, y = theo),
+            linetype = "dashed", color = "darkgrey") +
+  geom_vline(xintercept = 700)
+
+df <- data.frame(x = ppSub$x, y = ppSub$y, curve = unique(dfm$curve), sel = unique(sel)$sel)
+
+q <- ggplot(df, aes(x, y, col = sel)) +
+  geom_point(size = 1) + 
+  theme_light() +
+  theme(legend.position = "none") +
+  scale_colour_viridis_c() +
+  coord_equal(expand=FALSE)
+ 
+p/q
 ```
 
-:::
+The LISA Ripley's $K$ are coloured by their value at $r = 700$. We note that the LISA Ripley's $K$ gives two populations of curves. Those curves that increase at radii $r<500 µm$ above the CSR line indicated in grey and the other curves that remain either below the grey CSR line or increase after $r>500µm$. 
 
+If the values at $r=700$ of the curves are projected back into the physical space, we note that the curves above the grey CSR line are the highly clustered cells in the bottom left. The other curves are the more spaced cells.
