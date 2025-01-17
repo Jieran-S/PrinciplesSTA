@@ -28,8 +28,6 @@ library(Banksy)
 library(Seurat)
 library(PRECAST)
 library(ggspavis)
-library(purrr)
-library(VisiumIO)
 
 seed <- 123
 n_top <- 1000
@@ -197,15 +195,16 @@ table(clus_BANKSY)
 colData(spe)[["BANKSY"]] <- factor(clus_BANKSY)
 ```
 
-#### Encoder-based methods
-* methods
-* See examples @sec-img-clustering-de?
+#### Encoder-based 
+
+See examples in @sec-img-clustering-de.
 
 ## Visualization
 
 Visualize the clusters by plotting in (i) spatial (x-y) coordinates on the tissue slide, and (ii) reduced dimension space (PCA or UMAP). We use plotting functions from the [ggspavis](https://bioconductor.org/packages/ggspavis) package.
 
 ```{r, fig.height=3.5, echo=FALSE}
+#| code-fold: true
 # plot clusters in spatial x-y coordinates
 p1 <- plotSpots(spe, annotate = "leiden", legend_position = "none") + ggtitle("Leiden")
 p2 <- plotSpots(spe, annotate = "BayesSpace", legend_position = "none") + ggtitle("BayesSpace")
@@ -216,6 +215,7 @@ p1 | p2 | p3 | p4
 ```
 
 ```{r, message=FALSE, echo=FALSE, fig.width=10, fig.height=5}
+#| code-fold: true
 # plot clusters in PCA reduced dimensions
 # p1 <- plotDimRed(spe, plot_type = "PCA", annotate = "leiden") + ggtitle("Leiden")
 # p2 <- plotDimRed(spe, plot_type = "PCA", annotate = "BayesSpace") + ggtitle("BayesSpace")
@@ -243,6 +243,7 @@ top_markers <- unique(unlist(top_markers))
 
 
 ```{r}
+#| code-fold: true
 pbs <- aggregateAcrossCells(spe, ids = spe[["BANKSY"]], subset.row = top_markers, 
                             use.assay.type = "logcounts", statistics = "mean")
 hm <- plotHeatmap(pbs,
@@ -252,6 +253,7 @@ hm <- plotHeatmap(pbs,
 ```
 
 ```{r}
+#| code-fold: true
 p1 <- plotSpots(spe, annotate = "COL10A1")
 p2 <- plotSpots(spe, annotate = "BANKSY")
 p1 | p2
@@ -271,9 +273,9 @@ saveRDS(spe, file = "seq-spe_clustering_de.rds")
 
 ### Benchmarks {.unnumbered}
 
--   https://doi.org/10.1093/bfgp/elae040
--   https://doi.org/10.1186/s13059-024-03361-0
--   https://doi.org/10.1038/s41592-024-02325-3
--   https://doi.org/10.1016/j.csbj.2023.11.055
+* https://doi.org/10.1093/bfgp/elae040
+* https://doi.org/10.1186/s13059-024-03361-0
+* https://doi.org/10.1038/s41592-024-02325-3
+* https://doi.org/10.1016/j.csbj.2023.11.055
 
 ### References {.unnumbered}
