@@ -40,12 +40,14 @@ Imports:
     ExperimentHub, 
     ggplot2, 
     ggspavis, 
+    harmony, 
     hoodscanR,
     igraph, 
     imcRtools, 
     lobstr,
     nnSVG, 
     openxlsx,
+    osfr,
     patchwork, 
     pheatmap, 
     RANN,
@@ -53,8 +55,10 @@ Imports:
     rtracklayer, 
     scater, 
     scran,
+    scuttle, 
     SFEData,
     SpatialExperiment, 
+    SpatialExperimentIO, 
     spatialLIBD,
     SpatialFeatureExperiment, 
     spatialFDA,
@@ -62,6 +66,7 @@ Imports:
     spdep,
     STexampleData, 
     tidyr,
+    VisiumIO,
     Voyager,
     zoo
 Suggests: 
@@ -74,6 +79,7 @@ Suggests:
     sessioninfo, 
     xml2
 remotes: 
+    estellad/SpatialExperimentIO,
     mjemons/spatialFDA
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
