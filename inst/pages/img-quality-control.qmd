@@ -155,7 +155,7 @@ Finally, imaging-based platforms include, in addition to transcripts data, morph
 
 - `Area_um`: the area in microns;
 - `log2AspectRatio`: the log2 of the aspect ratio (x-axis/y-axis) of each cell;
-- `ctrl_total_raio`: the proportion of control probe counts over the total cell counts;
+- `ctrl_total_ratio`: the proportion of control probe counts over the total cell counts;
 - `log2CountArea`: the log2 of the count density, i.e., the number of transcripts divided by the cell area.
 
 
