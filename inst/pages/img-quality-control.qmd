@@ -4,7 +4,7 @@
 
 ### Introduction
 
-The analyses demonstrated here will use 313-plex Xenium data (10x Genomics) of a human breast cancer biopsy section [@Janesick2023] and the 1k-plex CosMX data (Nanostring) of a mouse brain lung non-small cell lung cancer [@He2022-CosMx].
+The analyses demonstrated here will use 313-plex Xenium data (10x Genomics) of a human breast cancer biopsy section [@Janesick2023] and the 1k-plex CosMX data (Nanostring) of a mouse brain sample.
 
 For the remainder of this Chapter, we will show the two examples in parallel, highlighting when needed the differences between the platforms.
 
