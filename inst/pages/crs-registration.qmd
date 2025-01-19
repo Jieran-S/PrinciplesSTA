@@ -16,16 +16,14 @@ Image registration and alignment methods provide transformation functions to map
 
 We first start by loading BioConductor/CRAN dependencies that will allow us to read and visualize microscopy images that are generated with or alongside with Imaging-based platforms. 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(STexampleData)
 library(SpatialExperiment)
 library(ggspavis)
 library(EBImage)
-library(RBioFormats)
-library(magick)
 ```
 
-We will employ the `r BiocStyle::Githubpkg("BIMSBBioinfo/VoltRon")` package on GitHub to align `SpatialExperiment` objects [@Manukyan2023-VoltRon]
+We will employ the `r BiocStyle::Githubpkg("BIMSBBioinfo/VoltRon")` package [@Manukyan2023-VoltRon] on GitHub to align `SpatialExperiment` object of the Xenium data with a post-Xenium H&E of the same tissue section. We will also need the `r BiocStyle::Biocpkg("RBioFormats")` package for reading multi-resolution ome.tiff files of both DAPI and H&E images. Both `ome.tiff` files can be found at [GSM7780153](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM7780153).
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 if(!requireNamespace("remotes"))
@@ -33,6 +31,7 @@ if(!requireNamespace("remotes"))
 if(!requireNamespace("VoltRon"))
   remotes::install_github("BIMSBbinfo/VoltRon")
 library(VoltRon)
+library(RBioFormats)
 ```
 
 ### Xenium vs Post-Xenium H&E Alignment
@@ -44,13 +43,12 @@ XeniumR1 <- Janesick_breastCancer_Xenium_rep1()
 XeniumR1
 ```
 
-The `SpatialExperiment` of the Xenium data does not include any images, to perform the spatial alignment via image registration. We add the DAPI stained image channel to the object. We use the `morphology_mip.ome.tif` file provided in the standard Xenium output and use `r BiocStyle::Biocpkg("EBImage")` package to read a specific resolution from the image pyramid. We choose the lowest resolution image and define the parameter for scaling spatial coordinates of cells according to the selected resolution. See [here](https://kb.10xgenomics.com/hc/en-us/articles/11636252598925-What-are-the-Xenium-image-scale-factors) for more information on image scale factors. 
+The `SpatialExperiment` of the Xenium data does not include any images, to perform the spatial alignment via image registration. We add the DAPI stained image channel to the object. We use the `morphology_mip.ome.tif` file provided in the standard Xenium output and use `r BiocStyle::Biocpkg("RBioFormats")` package to read a specific resolution from the image pyramid. We choose the lowest resolution image and define the parameter for scaling spatial coordinates of cells according to the selected resolution. See [here](https://kb.10xgenomics.com/hc/en-us/articles/11636252598925-What-are-the-Xenium-image-scale-factors) for more information on image scale factors. 
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 resolution_level <- 7
 scaleparam <- 0.2125*(2^(resolution_level-1))
-ome.tiff.dapi <- RBioFormats::read.image("morphology_mip.ome.tif",
-                                         resolution = resolution_level)
+ome.tiff.dapi <- read.image("morphology_mip.ome.tif", resolution = resolution_level)
 ```
 
 Before adding the selected image to the `SpatialExperiment` object, we normalize the contrast to 1 and then we save the image to a temporary `.png` file.
@@ -105,8 +103,7 @@ He.image <- "../images/crs-registration-Xenium_H&E_res7.png"
 ```
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
-ome.tiff.he <- RBioFormats::read.image("GSM7780153_Post-Xenium_HE_Rep1.ome.tif",
-                                         resolution = 7)
+ome.tiff.he <- read.image("GSM7780153_Post-Xenium_HE_Rep1.ome.tif", resolution = 7)
 He.image <- "Xenium_H&E_res7.png"
 EBImage::writeImage(ome.tiff.he, files = He.image, type = "png")
 ```
@@ -140,11 +137,10 @@ mapping <- matrix(
     2.372556e-03, 5.848592e-01, 105.44208, 
     -1.500111e-06, 3.715999e-06, 1.00000),
   ncol = 3, byrow = TRUE)
-imginfo <- magick::image_info(image_read("../images/crs-registration-Xenium_DAPI_res7.png"))
+imginfo <- dim(EBImage::readImage("../images/crs-registration-Xenium_DAPI_res7.png"))
 coords <- spatialCoords(XeniumR1)*scaleFactors(XeniumR1)
-coords[,2] <- imginfo$height - coords[,2]
+coords[,2] <- imginfo[2] - coords[,2]
 coords_reg <- t(mapping %*% rbind(t(coords),1))
-imginfo <- magick::image_info(image_read("../images/crs-registration-Xenium_H&E_res7.png"))
 coords_reg <- coords_reg[,1:2]
 colnames(coords_reg) <- colnames(spatialCoords(XeniumR1))
 XeniumR1_reg <- XeniumR1

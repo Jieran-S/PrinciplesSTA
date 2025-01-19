@@ -72,8 +72,7 @@ Imports:
     Voyager,
     zoo,
     magick,
-    EBImage,
-    RBioFormats
+    EBImage
 Suggests: 
     BiocManager, 
     BiocVersion, 
