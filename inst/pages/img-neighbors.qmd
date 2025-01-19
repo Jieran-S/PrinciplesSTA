@@ -1,4 +1,4 @@
-# Neighborhood analysis
+# Neighborhood analysis {#sec-img-neighbors}
 
 ## Dependencies
 

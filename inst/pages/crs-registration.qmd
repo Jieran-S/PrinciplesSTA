@@ -2,8 +2,6 @@
 
 ## Introduction
 
-
-
 ## Single Cell vs ST integration
 
 Spatial registration methods use gene expression profiles for cell populations of interest from single-cell RNA sequencing data as a reference, and use these single-cell expression profiles to 'spatially register' the spatial coordinates of observations corresponding to these cell populations in spatial transcriptomics data.
@@ -25,6 +23,11 @@ library(ggspavis)
 library(EBImage)
 library(RBioFormats)
 library(magick)
+```
+
+We will employ the `r BiocStyle::Githubpkg("BIMSBBioinfo/VoltRon")` package on GitHub to align `SpatialExperiment` objects. 
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
 if(!requireNamespace("remotes"))
   BiocManager::install("remotes")
 if(!requireNamespace("VoltRon"))
@@ -32,17 +35,7 @@ if(!requireNamespace("VoltRon"))
 library(VoltRon)
 ```
 
-```{r deps, message=FALSE, warning=FALSE}
-library(STexampleData)
-library(SpatialExperiment)
-library(ggspavis)
-library(EBImage)
-library(RBioFormats)
-library(magick)
-if(!requireNamespace("remotes"))
-  BiocManager::install("remotes")
-if(!requireNamespace("VoltRon"))
-  remotes::install_github("BIMSBbinfo/VoltRon")
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(VoltRon)
 ```
 
@@ -68,13 +61,14 @@ Before adding the selected image to the `SpatialExperiment` object, we normalize
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 ome.tiff.dapi <- (ome.tiff.dapi/max(ome.tiff.dapi)) 
-EBImage::writeImage(ome.tiff.dapi, files = "Xenium_DAPI_res7.png", type = "png")
+Dapi.image <- "Xenium_DAPI_res7.png"
+EBImage::writeImage(ome.tiff.dapi, files = Dapi.image, type = "png")
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 resolution_level <- 7
 scaleparam <- 0.2125*(2^(resolution_level-1))
-imgfile <- "../images/crs-registration-Xenium_DAPI_res7.png"
+Dapi.image <- "../images/crs-registration-Xenium_DAPI_res7.png"
 ```
 
 We can now add the DAPI channel to the `SpatialExperiment` and visualize cells overlaid on the new image.  
@@ -83,7 +77,7 @@ We can now add the DAPI channel to the `SpatialExperiment` and visualize cells o
 XeniumR1 <- addImg(XeniumR1, 
                    sample_id = XeniumR1$sample_id[1], 
                    image_id = "DAPI",
-                   imageSource = imgfile, 
+                   imageSource = Dapi.image, 
                    scaleFactor = 1/scaleparam, 
                    load = TRUE)
 ```
@@ -104,14 +98,19 @@ ggspavis::plotVisium(XeniumR1, annotate = "sample_id", spots = FALSE) +
 
 We will employ the `r BiocStyle::Githubpkg("BIMSBBioinfo/VoltRon")` package on GitHub to align the Xenium data with the post Xenium H&E images captured from the same tissue section following the Xenium in situ experiment. We define a VoltRon object from an H&E image using the `importImageData` function but first select a resolution from the `ome.tiff` file of the H&E. 
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+He.image <- "../images/crs-registration-Xenium_H&E_res7.png"
+```
+
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 ome.tiff.he <- RBioFormats::read.image("GSM7780153_Post-Xenium_HE_Rep1.ome.tif",
                                          resolution = 7)
-EBImage::writeImage(ome.tiff.he, files = "Xenium_H&E_res7.png", type = "png")
+He.image <- "Xenium_H&E_res7.png"
+EBImage::writeImage(ome.tiff.he, files = He.image, type = "png")
 ```
 
-```{r, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-HE_image_vr <- importImageData(image = "../images/crs-registration-Xenium_H&E_res7.png")
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+HE_image_vr <- importImageData(image = He.image)
 ```
 
 Before executing the automated registration, we have to convert the `SpatialExperiment` object of the Xenium data into a VoltRon object. The `assay_type` argument requires you to define the spatial entity type of the `SpatialExperiment` which is `cell` for spatial datasets in single cell resolution.
@@ -120,20 +119,34 @@ Before executing the automated registration, we have to convert the `SpatialExpe
 XeniumR1_vr <- as.VoltRon(XeniumR1, assay_type = "cell", assay_name = "Xenium")
 ```
 
-The `registerSpatialData` function performs the registration using a mini Shiny application which allows the user to manipulate images of both modalities. Before alignment, we can use the interface to negate the DAPI image (this step is needed to transform the DAPI image to make it similar to the H&E image). Then we rotate and vertically flip the DAPI image to slightly syncronize the perspective of two images before automated alignment can search for transformation landmark points. 
+The `registerSpatialData` function performs the registration using a mini Shiny application which allows the user to manipulate images of both modalities. Before alignment, we can use the interface to negate the DAPI image (this step is needed to transform the DAPI image to make it similar to the H&E image). Then horizontally flip the DAPI image to slightly syncronize the perspective of two images before automated alignment can search for transformation landmark points. 
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 xen_reg <- registerSpatialData(reference_spatdata = HE_image_vr, query_spatdata = XeniumR1_vr)
 ```
 
-```{r, echo=FALSE, eval=FALSE, message=FALSE, warning=FALSE}
-xen_reg <- registerSpatialData(reference_spatdata = HE_image_vr, query_spatdata = XeniumR1_vr, 
-                               mapping_parameters = readRDS("crs-registration-xen_to_he_mapping.rds"), 
-                               interactive = FALSE)
-```
-
 ![](../images/crs-registration-alignment.png){width="75%" fig-align="center" alt="The Shiny application interface for alignment Spatial datasets stored in VoltRon objects"}
+
 The returning value of the function will have a list that includes the query spatial data that is registered to the reference. We can also convert the registered Xenium data using `as.SpatialExperiment` function available in `VoltRon`.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# transformation matrix generated by VoltRon::registerSpatialData
+mapping <- matrix(
+  c(5.839057e-01, -2.542718e-03, 94.00896, 
+    2.372556e-03, 5.848592e-01, 105.44208, 
+    -1.500111e-06, 3.715999e-06, 1.00000),
+  ncol = 3, byrow = TRUE)
+imginfo <- magick::image_info(image_read("../images/crs-registration-Xenium_DAPI_res7.png"))
+coords <- spatialCoords(XeniumR1)*scaleFactors(XeniumR1)
+coords[,2] <- imginfo$height - coords[,2]
+coords_reg <- t(mapping %*% rbind(t(coords),1))
+imginfo <- magick::image_info(image_read("../images/crs-registration-Xenium_H&E_res7.png"))
+coords_reg <- coords_reg[,1:2]
+colnames(coords_reg) <- colnames(spatialCoords(XeniumR1))
+XeniumR1_reg <- XeniumR1
+spatialCoords(XeniumR1_reg) <- coords_reg
+imgData(XeniumR1_reg) <- NULL
+```
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE}
 XeniumR1_reg <- as.SpatialExperiment(xen_reg$registered_spat[[2]])
@@ -141,25 +154,16 @@ XeniumR1_reg <- as.SpatialExperiment(xen_reg$registered_spat[[2]])
 
 Now the registered Xenium data and the post Xenium H&E image have identical coordinate system, hence we can add the H&E image directly to the registered `SpatialExperiment` object. 
 
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 XeniumR1_reg <- addImg(XeniumR1_reg, 
                        sample_id = XeniumR1_reg$sample_id[1], 
                        image_id = "H&E",
-                       imageSource = "Xenium_H&E_res7.png", 
+                       imageSource = He.image, 
                        scaleFactor = 1, 
                        load = TRUE)
 ```
 
-```{r, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-XeniumR1_reg <- addImg(XeniumR1_reg, 
-                       sample_id = XeniumR1_reg$sample_id[1], 
-                       image_id = "H&E",
-                       imageSource = "../images/crs-registration-Xenium_H&E_res7.png", 
-                       scaleFactor = 1, 
-                       load = TRUE)
-```
-
-```{r, eval=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 img <- imgRaster(XeniumR1_reg)
 scale.factors <- scaleFactors(XeniumR1_reg, sample_id = TRUE, image_id = TRUE)
 coords <- spatialCoords(XeniumR1_reg)*scale.factors
@@ -173,13 +177,15 @@ ggspavis::plotVisium(XeniumR1_reg, annotate = "sample_id", image_ids = "H&E", sp
              alpha = 0.3)
 ```
 
-![](../images/crs-registration-alignment-overlay.png){width="75%" fig-align="center" alt="The Shiny application interface for alignment Spatial datasets stored in VoltRon objects"}
-
 ### Spatial alignment algorithms
 
 Alternatively, we can use other R/Python frameworks to automatically or manually align spatial omic datasets across tissue sections. Some of these methods could be used through R using BiocManager packages such as `r BiocStyle::Biocpkg("reticulate")` and `r BiocStyle::Biocpkg("basilisk")`
 
-- **STAlign**: available as a Python module from [GitHub](https://github.com/JEFworks-Lab/STalign).
+- **RNiftyReg**:   
+
+- **STAlign**: available as a Python module from [GitHub](https://github.com/JEFworks-Lab/STalign). The tool performs optimal transport across two coordinates of two spatial datasets 
+
+- **SpatialData**: 
 
 ### References {.unnumbered}
 
