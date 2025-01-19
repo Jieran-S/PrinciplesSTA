@@ -57,6 +57,7 @@ Imports:
     scran,
     scuttle, 
     SFEData,
+    SpaceTrooper,
     SpatialExperiment, 
     SpatialExperimentIO, 
     spatialLIBD,
@@ -78,7 +79,8 @@ Suggests:
     knitr,
     sessioninfo, 
     xml2
-remotes: 
+Remotes:
+    drighelli/SpaceTrooper,
     estellad/SpatialExperimentIO,
     mjemons/spatialFDA
 Encoding: UTF-8
