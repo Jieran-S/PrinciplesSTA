@@ -6,8 +6,8 @@ The following individuals have contributed to developing
 the contents of this book (in alphabetical order):
 
 - Artür Manukyan, Max Delbrück Center, Berlin, Germany
-- [Davide Risso](https://drisso.github.io/), University of Padova, Italy
 - Dario Righelli, University of Naples, Italy
+- [Davide Risso](https://drisso.github.io/), University of Padova, Italy
 - Estella Dong, Vaudois University Hospital Center, Lausanne, Switzerland
 - [Helena L. Crowell](https://helenalc.github.io/), National Center for Genomic Analysis, Barcelona, Spain
 - Jieran Sun, Vaudois University Hospital Center, Lausanne, Switzerland
