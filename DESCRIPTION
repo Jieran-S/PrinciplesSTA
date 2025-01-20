@@ -37,6 +37,7 @@ Imports:
     BiocFileCache, 
     BiocParallel,
     dplyr, 
+    EBImage,
     ExperimentHub, 
     ggplot2, 
     ggspavis, 
