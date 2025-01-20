@@ -2,18 +2,28 @@
 
 ## Authors
 
-The main developers of this book are:
+The following individuals have contributed to developing 
+the contents of this book (in alphabetical order):
 
-- [Lukas M. Weber](https://lmweber.org/), Boston University, Boston, USA
-- [Helena L. Crowell](https://helenalc.github.io/), National Center for Genomic Analysis (CNAG), Barcelona, Spain
+- Artür Manukyan, Max Delbrück Center, Berlin, Germany
+- [Davide Risso](https://drisso.github.io/), University of Padova, Italy
+- Dario Righelli, University of Naples, Italy
+- Estella Dong, Vaudois University Hospital Center, Lausanne, Switzerland
+- [Helena L. Crowell](https://helenalc.github.io/), National Center for Genomic Analysis, Barcelona, Spain
+- Jieran Sun, Vaudois University Hospital Center, Lausanne, Switzerland
 - [Leonardo Collado-Torres](https://lcolladotor.github.io/), Lieber Institute for Brain Development, Baltimore, USA
+- [Lukas M. Weber](https://lmweber.org/), Boston University, Boston, USA
+- [Mark Robinson](https://robinsonlabuzh.github.io/), University of Zurich, Zurich, Switzerland
+- Martin Emons, University of Zurich, Zurich, Switzerland
+- Samuel Gunz, University of Zurich, Zurich, Switzerland
 - [Stephanie C. Hicks](https://www.stephaniehicks.com/), Johns Hopkins University, Baltimore, USA
+- Peiying Cai, University of Zurich, Zurich, Switzerland
 
+*correspondence: [Lukas M. Weber](mailto:lmweberedu@gmail.com)
 
 ## Feedback and contributions
 
 We are grateful for feedback, suggestions, and contributions from readers in the research community. These may be provided as [GitHub](https://github.com/lmweber/PrinciplesSTA) issues (see @sec-bkg-introduction-feedback).
-
 
 ## Additional acknowledgments
 
@@ -21,10 +31,8 @@ We are grateful for feedback, suggestions, and contributions from readers in the
 
 - We are especially grateful to the [Bioconductor](https://bioconductor.org/) community and the [Bioconductor Core Team](https://www.bioconductor.org/about/core-team/).
 
-
 ## BiocBook
 
 This book is built using the [BiocBook](https://github.com/js2264/BiocBook) package, developed by [Jacques Serizay](https://jserizay.com/) for building Quarto books with Bioconductor. More details on BiocBook can be found in the [BiocBook book](https://jserizay.com/BiocBookDemo/devel/).
-
 
 ## References {.unnumbered}
