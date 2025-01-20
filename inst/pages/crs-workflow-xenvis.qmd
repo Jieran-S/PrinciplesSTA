@@ -249,7 +249,7 @@ dim(obj <- cbind(.vis, .xem))
 
 Next, we run a standard pipeline to perform log-library size normalization 
 (using `r BiocStyle::Biocpkg("scater")`), principal component analysis (PCA), 
-`harmnoy` integration, and dimension reduction (UMAP). Notably, the feature 
+`harmony` integration, and dimension reduction (UMAP). Notably, the feature 
 selection step that typically precedes PCA is skipped here, as the Xenium 
 experiment includes only a curated selection of $\sim300$ targets by design.
 
