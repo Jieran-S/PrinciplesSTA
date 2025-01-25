@@ -1,0 +1,43 @@
+# Interoperability {#sec-bkg-interoperability}
+
+Ideally, users would be able to leverage the full range of available tools for 
+their analysis.
+Methods should be selected based on scientific merit, and independent of having been implemented in a given programming language or framework.
+However, the effort made by developers to facilitate interoperability with existing infrastructure is often low.
+Different data structures, although standardized within a given framework, make switching between languages and tools especially cumbersome. 
+
+With a delay of years, attempts to alleviate this problem are being made.
+For example, the `r BiocStyle::Biocpkg("zellkonverter")` package \cite{Zappia2020-zellkonverter} (on Bioconductor) and functions from `r BiocStyle::CRANpkg("Seurat")` support conversion between Python's `AnnData` and R/Bioconductor's `r BiocStyle::Biocpkg("SingleCellExperiment")` (@sec-bkg-infrastructure).
+
+On a higher level, tools that enable interoperability between programming languages have become available.
+For example, the `r BiocStyle::Biocpkg("reticulate")` package \cite{Ushey2017-reticulate} provides an R interface to Python, including support to translate between objects from both languages;
+Bioconductor's `r BiocStyle::Biocpkg("basilisk")` \cite{Lun2022-basilisk} package facilitates Python environment management within the Bioconductor ecosystems, but can be interfaced with `reticulate` as well; and, 
+Quarto[^https://quarto.org] (by Posit, f.k.a. RStudio) can generate dynamic reports from code in different languages, can include scientific content (e.g., cross-referencing and captioned figure panels, LaTeX-based equations and citations), and can be published in multiple output formats (HTML, PDF etc.).
+
+Nevertheless, future efforts should be made on the developers' side to consider existing frameworks in the first place (during implementation), and to provide users with documentation (e.g., code demos) and the necessary methods (e.g., conversion functions) to use other tools, if they so wish, in multi-tool and potentially multilingual analysis pipelines.
+
+A standardized file format (FF) that can be written/exported and read/imported anywhere, while tracking all relevant (meta)data, is crucial to (F)AIR (i.e., accessible, interoperable, reusable) data and software interoperability. 
+A promising development towards such a standard for imaging-based spatial omics data (and, in turn, `simpler' sequencing-based spatial and single-cell omics data) is the Open Microscopy Environment's next-generation FF (OME-NGFF)\cite{Moore2021-OME-NGFF} OME-Zarr\cite{Moore2023-OME-Zarr}.
+Developed for cloud-storage of large high-dimensional arrays, Python's Zarr\cite{Miles2020-Zarr} provides a standardized FF that has already been adopted by many scientific communities.
+The `r BiocStyle::Biocpkg("Rarr")` package, which has recently been submitted to Bioconductor, aims to provide an R interface to Zarr.
+Together, these developments have the potential to lay a foundation for more seamless interoperability of computational tools to analyze single-cell and spatial omics data.
+
+## R to Python
+
+### Bioc to `AnnData`
+
+```{r message=FALSE, warning=FALSE}
+library(basilisk)
+library(zellkonverter)
+library(SingleCellExperiment)
+env <- BasiliskEnvironment("anndata", "PrinciplesSTA", "anndata")
+ad <- basiliskRun(
+    env=zellkonverterAnnDataEnv(), 
+    sce=SingleCellExperiment(), 
+    \(sce) SCE2AnnData(sce))
+```
+
+
+## Python to R
+
+## References {.unnumbered}
