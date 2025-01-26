@@ -28,7 +28,7 @@ library(BiocParallel)
 library(DropletUtils)
 library(SpatialExperiment)
 # specify whether/how to 
-# do out parallelization
+# perform parallelization
 bp <- MulticoreParam(th <- 10)
 # set seed for random number generation
 # in order to make results reproducible
@@ -168,12 +168,11 @@ colData(sce)[names(cd)] <- cd[colnames(sce), ]
 # use gene symbols as feature names
 rownames(sce) <- make.unique(rowData(sce)$Symbol)
 # exclude cells deemed to be of low-quality
-table(sce$QCFilter)
 sce <- sce[, sce$QCFilter == "Keep"]
 # tabulate subpopulations by disease status
 sce$Group <- gsub("P[0-9]", "", sce$Patient)
 sce$Patient <- gsub("(P[0-9]).*", "\\1", sce$Patient)
-table(sce$Level1, sce$Group)
+table(sce$Level1)
 ```
 
 [Here, we filter the reference data to contain only cells from the same patient.
