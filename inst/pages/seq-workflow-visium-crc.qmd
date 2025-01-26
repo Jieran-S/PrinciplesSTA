@@ -184,7 +184,7 @@ Next, we perform deconvolution with `r BiocStyle::Githubpkg("dmcable/spacexr")`
 i.e., at most two subpopulations are fit per pixel; here, we set `doublet_mode="full"` 
 in order to allow for an arbitrary number of subpopulations to be fit instead.
 
-```{r dec, message=FALSE}
+```{r dec, message=FALSE, warning=FALSE}
 xy <- data.frame(spatialCoords(spe))
 .spe <- SpatialRNA(xy, counts(spe))
 .sce <- sce[, sce$Patient == "P1"]
@@ -212,9 +212,23 @@ For comparison with unsupervised clustering (SNN-based Leiden), we also include
 assignments we would obtain if we were to assign spots the most frequent label
 (in terms of deconvolution estimates):
 
-```{r}
+```{r dec-clu}
 ids <- names(ws)[apply(ws, 1, which.max)]
 table(spe$RCDT <- factor(ids), spe$Leiden)
+```
+
+We can also compartmentalize the tissue into broad biological compartments;
+here, by grouping `RCDT`-based subpopulation assignments into four classes:
+
+```{r}
+lab <- list(
+    tum="Tumor",
+    epi="Intestinal.Epithelial",
+    imm=c("B.cells", "T.cells", "Myeloid"),
+    str=c("Endothelial", "Fibroblast", "Smooth.Muscle"))
+idx <- match(spe$RCDT, unlist(lab))
+lab <- rep.int(names(lab), sapply(lab, length))
+table(spe$Domain <- factor(lab[idx]))
 ```
 
 ## Exploratory
@@ -232,11 +246,11 @@ lapply(names(ws), \(.)
     scale_color_gradientn(colors=pals::jet())
 ```
 
-```{r plt-clu-xy, message=FALSE, fig.width=7, fig.height=2.5}
+```{r plt-clu-xy, message=FALSE, fig.width=10, fig.height=2.5}
 #| code-fold: true
-plotSpots(spe, annotate="Leiden") +
-plotSpots(spe, annotate="RCDT") +
-plot_layout(nrow=1) &
+lapply(c("Leiden", "Domain", "RCDT"), 
+    \(.) plotSpots(spe, annotate=.)) |>
+    wrap_plots(nrow=1) &
     theme(legend.key.size=unit(0, "lines")) &
     scale_color_manual(values=unname(pals::trubetskoy()))
 ```
