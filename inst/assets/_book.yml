@@ -7,7 +7,9 @@ book:
       chapters:
         - pages/bkg-introduction.qmd
         - pages/bkg-spatial-omics.qmd
-        - pages/bkg-bioconductor-data-classes.qmd
+        - pages/bkg-interoperability.qmd
+        - pages/bkg-infrastructure.qmd
+        - pages/bkg-datasets.qmd
     - part: "Sequencing-based platforms"
       chapters:
         - pages/seq-introduction.qmd
@@ -39,7 +41,7 @@ book:
         - pages/crs-spat-stat.qmd
         - pages/crs-registration.qmd
         - pages/crs-multi-sample-de.qmd
-        - pages/crs-workflow-visiumhd.qmd
+        - pages/crs-workflow-xenvis.qmd
   appendices:
     - pages/apx-acknowledgments.qmd
     - pages/apx-related-resources.qmd
