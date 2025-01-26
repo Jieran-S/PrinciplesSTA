@@ -179,9 +179,9 @@ table(sce$Level1, sce$Group)
 [Here, we filter the reference data to contain only cells from the same patient.
 This is not strictly necessary, assuming that clusters are transcriptionally
 stable across patients, but helps with speeding up computations here.]{.aside}
-Next, we perform deconvolution with `r BiocStyle::Githubpkg("dmcable/spacexr")`.
-By default, `run.RCTD()`'s `doublet_mode` argument is set to `"doublet"`, i.e., 
-at most two subpopulations are fit per pixel; here, we set `doublet_mode="full"` 
+Next, we perform deconvolution with `r BiocStyle::Githubpkg("dmcable/spacexr")` 
+(f.k.a. RCDT)[@Cable2022-RCDT]. By default, `run.RCTD()`'s `doublet_mode="doublet"`,
+i.e., at most two subpopulations are fit per pixel; here, we set `doublet_mode="full"` 
 in order to allow for an arbitrary number of subpopulations to be fit instead.
 
 ```{r dec, message=FALSE}
