@@ -262,12 +262,11 @@ map almost completely to a single cluster:
 
 ```{r plt-clu-fq, fig.width=6, fig.height=2.5}
 #| code-fold: true
-ggplot(
-    as.data.frame(with(cd, table(RCDT, Leiden))), 
-    aes(Freq, RCDT, fill=Leiden)) + ggtitle("RCDT") +
-ggplot(
-    as.data.frame(with(cd, table(Domain, Leiden))), 
-    aes(Freq, Domain, fill=Leiden)) + ggtitle("Domain") +
+cd <- data.frame(colData(spe))
+df <- as.data.frame(with(cd, table(RCDT, Leiden)))
+fd <- as.data.frame(with(cd, table(Domain, Leiden)))
+ggplot(df, aes(Freq, RCDT, fill=Leiden)) + ggtitle("RCDT") +
+ggplot(fd, aes(Freq, Domain, fill=Leiden)) + ggtitle("Domain") +
 plot_layout(nrow=1, guides="collect") &
     labs(x="Proportion", y=NULL) &
     coord_cartesian(expand=FALSE) &
