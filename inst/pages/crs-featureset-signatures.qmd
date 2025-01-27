@@ -15,11 +15,13 @@ single cells and subpopulations (i.e., pseudo-bulk profiles). Approaches to do
 this rely on databases of transcription factor binding sites, gene regulatory 
 networks, or annotated gene sets.
 
+<!--
 Complementarily, we can identify sets of features that, taken together, capture
 the transcriptional variability of cells with regards to other variables (e.g., 
 experimental condition); this is the goal of approaches such as MOFA. Here, the 
 biological function of inferred factors is not known beforehand but needs to be 
 investigated in downstream analyses.
+-->
 
 ### Dependencies
 
@@ -61,10 +63,9 @@ range(sapply(gs, length))
 
 Next, we score these with `r BiocStyle::Biocpkg("AUCell")` [@Aibar2017-AUCell],
 a rank-based approach that (i) ranks genes for every observation (here, cells), 
-and (ii) compute AUC values for each gene set. 
-
-These represent the fraction of genes among top-ranked genes (default 5%) 
-that are contained in a given set; i.e., high values = high activity.
+and (ii) compute AUC values for each gene set. These represent the fraction of 
+genes among top-ranked genes (default 5%) that are contained in a given set; 
+i.e., values are in [0,1] and high values = high activity.
 
 ```{r AUCell}
 # realize (sparse) gene expression matrix
@@ -83,7 +84,31 @@ auc <- AUCell_calcAUC(geneSets=.gs, rankings=rnk, nCores=th, verbose=FALSE)
 colData(spe)[rownames(auc)] <- t(assay(auc)) 
 ```
 
-### Spatial viz.
+### Exploratory
+
+Let's inspect the percentage of cells with non-zero score across signatures:
+
+```{r}
+fq <- rowMeans(assay(auc) > 0)
+fq <- sort(round(100*fq, 2))
+head(fq) # rarely detected
+tail(fq) # mostly detected
+```
+
+We might also view how signature scores correlated with one another. Besides the 
+underlying biology, this will be influenced by the number of genes overlapping 
+between sets (here, we are only capturing a little over 300 RNA targets!).
+
+```{r fig.width=8, fig.height=7}
+#| code-fold: true
+cm <- cor(t(assay(auc)), method="spearman")
+pheatmap(cm, cellwidth=10, cellheight=10)
+```
+
+Highly correlated sets will exhibit similar spatial patterns. Let's visualize 
+some examples; here, hypoxia and myogenesis are spatially exclusive (they are
+negatively correlated and occupy separated 'blocks' in the correlation matrix
+displayed above), while apoptosis is ubiquitous (detected in >90% of cells).
 
 ```{r message=FALSE, fig.width=11, fig.height=3}
 #| code-fold: true
@@ -107,9 +132,12 @@ lapply(c("hypoxia", "apoptosis", "myogenesis"), \(.) {
         panel.background=element_rect(fill="black")) 
 ```
 
-### Per-cluster viz.
+Lastly, we can aggregate signature scores by cell subpopulations. This can help
+us functionally characterize subpopulations that stem from, e.g., unsupervised 
+approaches or in cases where the cells under study are poorly characterized.
 
 ```{r fig.width=6, fig.height=5}
+#| code-fold: true
 # aggregate AUC values by cluster
 mu <- aggregateAcrossCells(auc, spe$k, use.assay.type="AUC", statistics="mean")
 # visualize as (cluster x set) heatmap
