@@ -147,6 +147,13 @@ mu <- aggregateAcrossCells(auc, spe$k, use.assay.type="AUC", statistics="mean")
 pheatmap(mat=assay(mu), scale="row", col=pals::coolwarm())
 ```
 
+In a multi-sample setting - say, where sections across different stages of
+development, treatments, or health and disease - signatures may be compared 
+between experimental conditions. Ideally, this'd be done at the subpopulation
+level, since compositional differences are deemed to drive differences (e.g.,
+sections richer in CD8+ T cells are, by chance, more likely to score higher
+for cytotoxicity than sections where CD8+ T cells are absent, or similar).
+
 ## Appendix
 
 ### References {.unnumbered}
