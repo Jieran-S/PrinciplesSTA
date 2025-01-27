@@ -102,7 +102,10 @@ between sets (here, we are only capturing a little over 300 RNA targets!).
 ```{r fig.width=8, fig.height=7}
 #| code-fold: true
 cm <- cor(t(assay(auc)), method="spearman")
-pheatmap(cm, cellwidth=10, cellheight=10)
+pheatmap(cm, 
+    breaks=seq(-1, 1, 0.1), 
+    color=pals::coolwarm(20), 
+    cellwidth=10, cellheight=10)
 ```
 
 Highly correlated sets will exhibit similar spatial patterns. Let's visualize 

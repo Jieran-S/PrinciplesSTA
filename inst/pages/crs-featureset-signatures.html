@@ -596,7 +596,10 @@ investigated in downstream analyses.
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r cell-code"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>cm <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">t</span>(<span class="fu">assay</span>(auc)), <span class="at">method=</span><span class="st">&quot;spearman&quot;</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(cm, <span class="at">cellwidth=</span><span class="dv">10</span>, <span class="at">cellheight=</span><span class="dv">10</span>)</span></code></pre></div>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(cm, </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks=</span><span class="fu">seq</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="fl">0.1</span>), </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">color=</span>pals<span class="sc">::</span><span class="fu">coolwarm</span>(<span class="dv">20</span>), </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cellwidth=</span><span class="dv">10</span>, <span class="at">cellheight=</span><span class="dv">10</span>)</span></code></pre></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -643,7 +646,7 @@ investigated in downstream analyses.
 <summary>Code</summary>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r cell-code"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate AUC values by cluster</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">aggregateAcrossCells</span>(auc, spe<span class="sc">$</span>k, <span class="at">use.assay.type=</span><span class="st">&quot;AUC&quot;</span>, <span class="at">statistics=</span><span class="st">&quot;mean&quot;</span>)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize as (cluster x set) heatmap</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize as (set x cluster) heatmap</span></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(<span class="at">mat=</span><span class="fu">assay</span>(mu), <span class="at">scale=</span><span class="st">&quot;row&quot;</span>, <span class="at">col=</span>pals<span class="sc">::</span><span class="fu">coolwarm</span>())</span></code></pre></div>
 </details>
 <div class="cell-output-display">
