@@ -20,6 +20,7 @@ library(igraph)
 library(AUCell)
 library(scuttle)
 library(spacexr)
+library(msigdbr)
 library(VisiumIO)
 library(jsonlite)
 library(ggspavis)
@@ -316,34 +317,19 @@ lapply(c("detected", "log_sum", "subsets_mt_percent"), \(.)
 ## Signatures
 
 [Note that such gene lists like these may come from many different places - e.g., in-house analyses, other publications befitting the research question etc. As such, they may also be read into are from a *.csv* file, or stem from upstream analyses. In any case, they should be curated well and interpreted with caution.]{.aside}
-Rather than investigating single genes, we can also evaluate the expression of sets of genes (e.g., pathway signatures); e.g., malignant tissue may differ in metabolic activity such as glycolysis and fatty acid metabolism, or exhibit increased apoptosis (cell death) etc. Here, we retrieve hallmark gene sets for said biological phenomena from [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb):
+Rather than investigating single genes, we can also evaluate the expression of sets of genes (e.g., pathway signatures); e.g., malignant tissue may differ in metabolic activity such as glycolysis and fatty acid metabolism, or exhibit increased apoptosis (cell death) etc. Here, we retrieve hallmark gene sets for some biological phenomena from [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb), using the `r BiocStyle::Biocpkg("msigdbr")` package:
 
 ```{r MSigDB}
-#| code-fold: true
-url <- paste0(
-    "https://www.gsea-msigdb.org/gsea/msigdb/human/",
-    "download_geneset.jsp?geneSetName=%s&fileType=json")
-ids <- c(
-    hypoxia="HYPOXIA",
-    apoptosis="APOPTOSIS",
-    glycolysis="GLYCOLYSIS",
-    FA_metabolism="FATTY_ACID_METABOLISM")
-set <- lapply(ids, \(id) {
-    id <- paste0("HALLMARK_", id)
-    tf <- tempfile(fileext=".json")
-    download.file(sprintf(url, id), tf, quiet=TRUE)
-    gs <- fromJSON(tf)[[1]]$geneSymbols
-    gs <- match(gs, rowData(spe)$Symbol, nomatch=0)
-    rownames(spe)[gs]
-})
-```
-
-```{r set}
-# we now have a list of gene sets
-# (element is a character vector)
-head(set$FA_metab)
-# counts number of genes in each set
-sapply(set, length)
+# retrieve hallmark gene sets from 'MSigDB'
+db <- msigdbr(species="Homo sapiens", category="H")
+# get list of gene symbols, one element per set
+gs <- split(db$ensembl_gene, db$gs_name)
+# simplify set identifiers (drop prefix, use lower case)
+names(gs) <- tolower(gsub("HALLMARK_", "", names(gs)))
+# how many sets?
+length(gs) 
+# how many genes in each?
+range(sapply(gs, length))
 ```
 
 [By definition, `AUCell` yields values in [0,1]. Larger sets (more genes) are more likely to achieve higher scores by chance (e.g., a gene set of *all* genes would score 1 in any dataset). It is thus unfair to compare them directly. However, spatial distribution, correlation, and relative comparisons between subpopulations etc. are still meaningful.]{.aside}
@@ -352,26 +338,37 @@ Next, we will score these using `r BiocStyle::Biocpkg("AUCell")` [@Aibar2017-AUC
 ```{r AUCell}
 # realize (sparse) gene expression matrix
 mtx <- as(logcounts(spe), "dgCMatrix") 
+# use ensembl identifiers as feature names
+rownames(mtx) <- rowData(spe)$ID
 # build per-spot gene rankings
 rnk <- AUCell_buildRankings(mtx, BPPARAM=bp, plotStats=FALSE, verbose=FALSE)
 # calculate AUC for each gene set in each spot
-auc <- AUCell_calcAUC(geneSets=set, rankings=rnk, nCores=th, verbose=FALSE)
+auc <- AUCell_calcAUC(geneSets=gs, rankings=rnk, nCores=th, verbose=FALSE)
 # add results as spot metadata
-colData(spe)[rownames(auc)] <- t(assay(auc)) 
+colData(spe)[rownames(auc)] <- res <- t(assay(auc)) 
 ```
 
-To summarize, `FA_metabolism` absent in stromal regions; the fibroblast ring
+For simplicity, we'll continue investigating only those
+signatures with the highest score variability across spots:
+
+```{r top}
+var <- colVars(res) # variance across spots
+top <- names(tail(sort(var), 8)) # top sets
+```
+
+
+To summarize, `fatty_acid_metabolism` absent in stromal regions; the fibroblast ring
 surrounding the cancerous patch exhibit a lot of `apoptosis` and `hypoxia`; 
 `glycolysis` is absent in stromal, and higher in malignant epithelial regions.
 
-```{r plt-auc-xy, message=FALSE, fig.width=10, fig.height=3}
+```{r plt-auc-xy, message=FALSE, fig.width=11, fig.height=6}
 #| code-fold: true
-lapply(rownames(auc), \(.) {
+lapply(top, \(.) {
     spe[[.]] <- scale(spe[[.]]) # scaling
     plotSpots(spe, annotate=.) # plotting
 }) |> 
     # arrange & prettify
-    wrap_plots(nrow=1, guides="collect") & 
+    wrap_plots(nrow=2, guides="collect") & 
     scale_color_gradientn(
         colors=pals::jet(),
         oob=scales::squish, 
@@ -384,12 +381,12 @@ lapply(rownames(auc), \(.) {
 To ease interpretability, we can stratify `AUCell` scores by spot labels; 
 these may stem from an unsupervised or deconvolution-based approach:
 
-```{r plt-auc-hm, fig.width=2.5, fig.height=3}
+```{r plt-auc-hm, fig.width=3, fig.height=4}
 #| layout-ncol: 2
 #| code-fold: true
 for (. in c("Leiden", "RCDT")) {
     # aggregate AUC values by cluster
-    mu <- aggregateAcrossCells(auc, spe[[.]], 
+    mu <- aggregateAcrossCells(auc[top, ], spe[[.]], 
         use.assay.type="AUC", statistics="mean")
     # visualize as (cluster x set) heatmap
     pheatmap::pheatmap(
