@@ -1,4 +1,4 @@
-# Spatially variable genes {#sec-crs-spatially-variable-genes}
+# Spatially variable genes {#sec-crs-spatially-variable}
 
 ## Preamble
 
@@ -27,7 +27,7 @@ Load data object containing logcounts previously saved in @sec-seq-normalize-fea
 
 ```{r, message=FALSE}
 library(SpatialExperiment)
-spe <- readRDS("seq-spe_logcounts.rds")
+spe <- readRDS("seq-spe_dr.rds")
 ```
 
 Load additional dependencies for this chapter:
