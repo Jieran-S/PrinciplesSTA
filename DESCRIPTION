@@ -63,7 +63,7 @@ Imports:
     scran,
     scuttle, 
     SFEData,
-    SingleR, 
+    SingleR,
     SpaceTrooper,
     spacexr,
     SpatialExperiment, 
