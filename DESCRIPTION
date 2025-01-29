@@ -90,7 +90,6 @@ Suggests:
     xml2
 Remotes:
     drisso/SpaceTrooper@devel_spatialBook,
-    drisso/SpaceTrooper@devel_spatialBook,
     estellad/SpatialBook_DataLoad,
     estellad/SpatialExperimentIO,
     mjemons/spatialFDA,
