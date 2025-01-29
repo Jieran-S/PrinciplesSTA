@@ -66,8 +66,8 @@ However, the automation does not work well on images with very different orienta
 scale, and intensity, such as in this use case of Xenium and Visium.
 
 <center>
-![](../images/xenvis-RNiftyReg1){width=66%}
-![](../images/xenvis-RNiftyReg2){width=33%}
+![](../images/xenvis-RNiftyReg1.png){width=66%}
+![](../images/xenvis-RNiftyReg2.png){width=33%}
 </center>
 
 Therefore, we use the affine transformation matrix provided by 10x Genomics, 
