@@ -52,6 +52,7 @@ Imports:
     nnSVG, 
     openxlsx,
     osfr,
+    OSTA.data,
     pals, 
     patchwork, 
     pheatmap, 
@@ -90,6 +91,7 @@ Suggests:
 Remotes:
     drisso/SpaceTrooper@devel_spatialBook,
     drisso/SpaceTrooper@devel_spatialBook,
+    estellad/SpatialBook_DataLoad,
     estellad/SpatialExperimentIO,
     mjemons/spatialFDA,
     dmcable/spacexr
