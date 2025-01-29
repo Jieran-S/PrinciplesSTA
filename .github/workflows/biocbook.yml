@@ -3,8 +3,15 @@ name: biocbook
 on:
   push:
     branches:
-      - devel
-      - RELEASE_**
+      - gha
+  #     - devel
+  #     - RELEASE_**
+  # pull_request:
+  #   branches:
+  #     - sandbox
+
+env:
+  ver: devel
 
 jobs:
   build-push:
@@ -15,6 +22,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Free root space
+        uses: almahmoud/free-root-space@main
+        with:
+          verbose: true
       
       - name: 🧾 Checkout repository
         uses: actions/checkout@v3
@@ -53,7 +64,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.owner }}/${{ env.pkgname }}
           tags: |
-            ${{ github.ref_name }}
+            ${{ env.ver }}
             ${{ env.pkgversion }}
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'devel') }}
 
@@ -65,7 +76,7 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            BIOC_VERSION=${{ github.ref_name }}
+            BIOC_VERSION=${{ env.ver }}
 
       - name: 🚀 Push local Docker image to ghcr.io
         uses: docker/build-push-action@v4
@@ -74,7 +85,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            BIOC_VERSION=${{ github.ref_name }}
+            BIOC_VERSION=${{ env.ver }}
 
       - name: 📚 Recover pkg artifacts generated during build in local Docker container (pkg bundle and book) 
         env:
