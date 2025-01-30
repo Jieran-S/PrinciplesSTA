@@ -54,6 +54,7 @@ Imports:
     nnSVG, 
     openxlsx,
     osfr,
+    OSTA.data,
     pals, 
     patchwork, 
     pheatmap, 
