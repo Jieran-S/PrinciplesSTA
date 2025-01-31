@@ -1,4 +1,4 @@
-Package: PrinciplesSTA
+Package: OSTA
 Title: Principles of Spatial Transcriptomics Analysis with Bioconductor
 Description: This package contains source files for the "Principles of Spatial 
     Transcriptomics Analysis with Bioconductor" online book. This book provides 
