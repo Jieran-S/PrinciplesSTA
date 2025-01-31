@@ -90,8 +90,8 @@ Suggests:
     xml2
 Remotes:
     drisso/SpaceTrooper@devel_spatialBook,
-    estellad/SpatialBook_DataLoad,
     estellad/SpatialExperimentIO,
+    estellad/OSTA.data,
     mjemons/spatialFDA,
     dmcable/spacexr
 Encoding: UTF-8
