@@ -151,7 +151,6 @@ Finally, imaging-based platforms include, in addition to transcripts data, morph
 - `ctrl_total_ratio`: the proportion of control probe counts over the total cell counts;
 - `log2CountArea`: the log2 of the count density, i.e., the number of transcripts divided by the cell area.
 
-
 ```{r qc-metrics-xen}
 ## These lines are needed temporarily because we are working with a STexampleData object
 ## rather than one imported from the 10X Genomics output
