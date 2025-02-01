@@ -1,5 +1,5 @@
 book:
-  title: "Principles of Spatial (Transcript)omics Analysis with Bioconductor"
+  title: "Orchestrating Spatial (Transcript)omics Analysis with Bioconductor"
   chapters:
     - index.qmd
     - pages/preamble.qmd
@@ -49,7 +49,7 @@ book:
   cover-image: assets/cover.png
   favicon: assets/favicon.png
   sidebar: 
-    title: "PrinciplesSTA"
+    title: "OSTA"
     style: "docked"
     background: "light"
     collapse-level: 5
