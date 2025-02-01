@@ -84,6 +84,7 @@ Suggests:
     BiocManager, 
     BiocVersion, 
     BiocStyle, 
+    doMC,
     downlit,
     glue, 
     knitr,
