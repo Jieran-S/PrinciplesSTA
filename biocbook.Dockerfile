@@ -1,6 +1,6 @@
-ARG BIOC_VERSION
+ARG BRANCH
 ARG OWNER
-FROM ghcr.io/${OWNER}/deps:${BIOC_VERSION} AS builder
+FROM ghcr.io/${OWNER}/deps:${BRANCH} AS builder
 COPY . /opt/pkg
 WORKDIR /opt/pkg
 
