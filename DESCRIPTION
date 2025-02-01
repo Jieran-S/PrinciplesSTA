@@ -49,6 +49,7 @@ Imports:
     imcRtools, 
     jsonlite, 
     lobstr,
+    msigdbr,
     nnSVG, 
     openxlsx,
     osfr,
