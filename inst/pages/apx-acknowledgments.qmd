@@ -13,7 +13,6 @@ The main developers of this book are:
 
 We are grateful for feedback, suggestions, and contributions from readers in the research community. These may be provided as [GitHub](https://github.com/lmweber/PrinciplesSTA) issues (see @sec-bkg-introduction-feedback).
 
-
 ## Additional acknowledgments
 
 - This book is inspired by the [Orchestrating Single-Cell Analysis with Bioconductor (OSCA)](https://bioconductor.org/books/release/OSCA/) book [@Amezquita2020] on analysis workflows for non-spatial single-cell data using R and Bioconductor.
