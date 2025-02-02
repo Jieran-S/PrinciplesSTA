@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-```{r deps, message=FALSE, warning=FALSE}
+```{r load-deps, message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(scran)
@@ -10,8 +10,6 @@ library(scater)
 library(ggspavis)
 library(patchwork)
 library(SpatialExperiment)
-# load data from previous section
-spe <- readRDS("img-spe_qc.rds")
 # basic theme for spatial plots
 theme_xy <- list(
     coord_equal(expand=FALSE), 
@@ -22,12 +20,11 @@ theme_xy <- list(
         panel.background=element_rect(fill="black", color="white")))
 ```
 
-```{r}
-# TODO: not sure where to put this...
+```{r load-data}
+# load data from previous section
+spe <- readRDS("img-spe_qc.rds")
 # use gene symbols as feature names
 rownames(spe) <- make.unique(rowData(spe)$Symbol)
-# exclude low-quality cells
-spe <- spe[, -which(spe$is_fscore_outlier)]
 ```
 
 ## Normalization
