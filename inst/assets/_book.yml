@@ -1,5 +1,5 @@
 book:
-  title: "Principles of Spatial (Transcript)omics Analysis with Bioconductor"
+  title: "Orchestrating Spatial (Transcript)omics Analysis with Bioconductor"
   chapters:
     - index.qmd
     - pages/preamble.qmd
@@ -13,10 +13,10 @@ book:
     - part: "Sequencing-based platforms"
       chapters:
         - pages/seq-introduction.qmd
-        #- pages/seq-load-data.qmd
-        #- pages/seq-quality-control.qmd
-        #- pages/seq-processing.qmd
-        #- pages/seq-clustering.qmd
+        - pages/seq-load-data.qmd
+        - pages/seq-quality-control.qmd
+        - pages/seq-processing.qmd
+        - pages/seq-clustering.qmd
         #- pages/seq-spot-deconvolution.qmd
         #- pages/seq-spatial-co-localization.qmd
         #- pages/seq-marker-genes.qmd
@@ -49,7 +49,7 @@ book:
   cover-image: assets/cover.png
   favicon: assets/favicon.png
   sidebar: 
-    title: "PrinciplesSTA"
+    title: "OSTA"
     style: "docked"
     background: "light"
     collapse-level: 5
