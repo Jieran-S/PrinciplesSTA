@@ -30,6 +30,11 @@ The following individuals have contributed to developing the contents of this bo
 Feedback and suggestions may be provided as [GitHub](https://github.com/lmweber/OSTA) issues (see @sec-bkg-introduction-feedback) for discussion with the maintainers.
 
 
+## Visium data preprocessing
+
+- Details on data preprocessing procedures for 10x Genomics Visium data can be found in our related online book [Visium data preprocessing](https://lmweber.org/Visium-data-preprocessing/).
+
+
 ## Additional acknowledgments
 
 - This book is inspired by the [Orchestrating Single-Cell Analysis with Bioconductor (OSCA)](https://bioconductor.org/books/release/OSCA/) book [@Amezquita2020] on analysis workflows for single-cell data using R and Bioconductor.
