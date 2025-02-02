@@ -27,7 +27,7 @@ The following individuals have contributed to developing the contents of this bo
 
 ## Feedback and contributions
 
-Feedback and suggestions may be provided as [GitHub](https://github.com/lmweber/OSTA) issues (see @sec-bkg-introduction-feedback) for discussion with the maintainers.
+Feedback and suggestions may be provided as [GitHub](https://github.com/lmweber/OSTA) issues for discussion with the maintainers.
 
 
 ## Visium data preprocessing
