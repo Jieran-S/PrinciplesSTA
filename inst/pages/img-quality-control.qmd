@@ -31,16 +31,11 @@ First, we load the CosMx dataset:
 ```{r load-cos, message=FALSE, warning=FALSE}
 # retrieve CosMx dataset from OSF repo
 id <- "CosMx1k_MouseBrain1"
-cos <- OSTA.data::.read_data(id)
-
-# add cell boundary polygons
-fnm <- metadata(cos)$polygons
-pol <- readPolygonsCosmx(fnm, type="parquet")
-idx <- sprintf("f%s_c%s", cos$fov, cos$cell_ID)
-cos$polygons <- pol[match(idx, pol$cell_id), ]
-
-# add info for 'SpaceTrooper'
-metadata(cos)$technology <- "Nanostring_CosMx"
+pa <- OSTA.data::.load_data(id)
+dir.create(td <- tempfile())
+unzip(pa, exdir=td)
+# TODO: should use 'SpaExpIO' here...
+cos <- SpaceTrooper::readCosmxSPE(td)
 cos$sample_id <- "CosMx"
 cos
 ```
