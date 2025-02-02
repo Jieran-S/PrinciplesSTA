@@ -398,8 +398,11 @@ Whenever possible, we advice readers to cross-check visualizations like the foll
 
 ```{r save-data}
 # exclude low-quality cells
-ex <- which(xen$is_fscore_outlier)
-saveRDS(xen[, -ex], "img-spe_qc.rds")
+ol <- xen$is_fscore_outlier
+xen <- xen[, -which(ol)]
+# drop polygons
+xen$polygons <- NULL
+saveRDS(xen, "img-spe_qc.rds")
 ```
 
 ### References {.unnumbered}

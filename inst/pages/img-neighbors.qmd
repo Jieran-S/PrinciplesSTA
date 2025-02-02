@@ -19,11 +19,6 @@ theme_xy <- list(
         plot.margin=margin(l=5),
         legend.key=element_blank(),
         panel.background=element_rect(fill="black")))
-# TODO: 'polygons' slot added by 'SpaceTrooper'
-# makes the object invalid - gotta fix that...
-# we also don't want to realize & re-save these, 
-# but work with the underlying .parquet instead?
-spe$polygons <- NULL 
 ```
 
 ## Nearest neighbors
