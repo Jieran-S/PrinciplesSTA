@@ -21,8 +21,8 @@ book:
         - pages/seq-spatial-co-localization.qmd
         - pages/seq-marker-genes.qmd
         - pages/seq-workflow-visium-crc.qmd
-        - pages/seq-workflow-human-dlpfc.qmd
-        - pages/seq-workflow-spatialibd.qmd
+        #- pages/seq-workflow-human-dlpfc.qmd
+        #- pages/seq-workflow-spatialibd.qmd
     - part: "Imaging-based platforms"
       chapters:
         - pages/img-introduction.qmd
@@ -30,7 +30,7 @@ book:
         - pages/img-dimensionality-reduction.qmd
         - pages/img-clustering.qmd
         - pages/img-neighbors.qmd
-        - pages/img-cell-comm.qmd
+        #- pages/img-cell-comm.qmd
         - pages/img-sub-cellular.qmd
         - pages/img-workflow-xenium.qmd
         - pages/img-workflow-cosmx.qmd
