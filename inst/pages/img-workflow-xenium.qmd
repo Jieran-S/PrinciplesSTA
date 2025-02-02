@@ -31,13 +31,8 @@ set.seed(112358)
 
 ```{r load-spe}
 # retrieve dataset from OSF repository
-osf <- osf_retrieve_node("https://osf.io/5n4q3")
-tbl <- osf_ls_files(osf, "Xenium_HumanColon_Oliveria")
-tbl <- tbl[!grepl("transcripts|boundaries", tbl$name), ]
-dir.create(tmp <- tempfile())
-osf_download(tbl, tmp, verbose=FALSE)
-# read into 'SpatialExperiment'
-(spe <- readXeniumSXE(tmp))
+id <- "Xenium_HumanColon_Oliveria"
+(spe <- OSTA.data::.read_data(id))
 ```
 
 ## Getting started
