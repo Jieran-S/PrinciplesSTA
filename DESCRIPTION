@@ -84,10 +84,11 @@ Suggests:
     BiocManager, 
     BiocVersion, 
     BiocStyle, 
-    doMC,
+    doMC, #AUCell
     downlit,
     glue, 
     knitr,
+    scrapper, #SingleR
     sessioninfo, 
     xml2
 Remotes:
