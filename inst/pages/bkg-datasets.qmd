@@ -17,6 +17,8 @@ For convenience, we have implemented `OSTA.data` to:
 - unpack and read it into a `SpatialExperiment`  
 using `r BiocStyle::Biocpkg("VisiumIO")` for Visium(HD),  
 or otherwise `r BiocStyle::Biocpkg("SpatialExperimentIO")`
+- by default, polygons and transcripts are not realized,  
+but corresponding file paths are stored as `metadata`
 
 ```{r osta-data, eval=FALSE}
 if (!require("BiocManager", quietly=TRUE))
