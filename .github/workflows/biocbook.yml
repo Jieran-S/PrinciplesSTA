@@ -86,7 +86,7 @@ jobs:
         with:
           context: .
           file: biocbook.Dockerfile
-          load: true
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             BRANCH=${{ steps.extract_branch.outputs.branch }}
@@ -97,7 +97,7 @@ jobs:
           IMG: ${{ steps.docker.outputs.ImageID }}
         run: |
           SHA=$(docker container create ${{ env.IMG }})
-          docker container cp ${SHA}:/${{ env.Pkgname }}_${{ env.pkgversion }}.tar.gz .
+          docker container cp ${SHA}:/opt/pkg/${{ env.Pkgname }}_${{ env.pkgversion }}.tar.gz .
           tar --extract --gzip --file ${{ env.Pkgname }}_${{ env.pkgversion }}.tar.gz
           echo bundle_path=${{ env.Pkgname }}_${{ env.pkgversion }}.tar.gz >> "${GITHUB_ENV}"
           echo book_path=${{ env.Pkgname }}/inst/doc/book/ >> "${GITHUB_ENV}"
