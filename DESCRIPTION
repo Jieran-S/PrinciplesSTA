@@ -21,8 +21,8 @@ Authors@R:
              role = c("aut", "cre"), 
              email = "lmweberedu@gmail.com", 
              comment = c(ORCID = "0000-0002-3282-1730")))
-URL: https://github.com/lmweber/PrinciplesSTA
-BugReports: https://github.com/lmweber/PrinciplesSTA
+URL: https://github.com/lmweber/OSTA
+BugReports: https://github.com/lmweber/OSTA
 biocViews: 
     Book, 
     Spatial, 
@@ -37,6 +37,7 @@ Imports:
     BayesSpace,
     BiocFileCache, 
     BiocParallel,
+    doMC,
     dplyr, 
     DropletUtils,
     EBImage,
@@ -70,8 +71,8 @@ Imports:
     spacexr,
     SpatialExperiment, 
     SpatialExperimentIO, 
-    SpatialFeatureExperiment, 
     spatialFDA,
+    SpatialFeatureExperiment, 
     spatialLIBD,
     spatstat,
     spdep,
@@ -82,9 +83,9 @@ Imports:
     zoo
 Suggests: 
     BiocManager, 
-    BiocVersion, 
     BiocStyle, 
     doMC,
+    BiocVersion, 
     downlit,
     glue, 
     knitr,
