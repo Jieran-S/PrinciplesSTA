@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-```{r deps, message=FALSE, warning=FALSE}
+```{r load-deps, message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(scran)
@@ -10,8 +10,6 @@ library(scater)
 library(ggspavis)
 library(patchwork)
 library(SpatialExperiment)
-# load data from previous section
-spe <- readRDS("img-spe_qc.rds")
 # basic theme for spatial plots
 theme_xy <- list(
     coord_equal(expand=FALSE), 
@@ -22,6 +20,13 @@ theme_xy <- list(
         panel.background=element_rect(fill="black", color="white")))
 ```
 
+```{r load-data}
+# load data from previous section
+spe <- readRDS("img-spe_qc.rds")
+# use gene symbols as feature names
+rownames(spe) <- make.unique(rowData(spe)$Symbol)
+```
+
 ## Normalization
 
 Library size-based normalization as is typical for scRNA-seq data has been shown to be problematic for ST data, especially so for targeted panels underlying current commercial imaging-based ST platforms [@Atta2024,@Bhuva2024].
@@ -29,9 +34,7 @@ For lack of a better approach, we here use standard log-library size normalizati
 We caution readers, however, to keep an eye out in the literature for attempts to provide a better strategy.
 
 ```{r calc-norm}
-# remove zeros
-spe <- spe[, colSums(counts(spe)) > 0]
-
+# log-library size normalization
 spe <- logNormCounts(spe)
 ```
 

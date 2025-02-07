@@ -9,7 +9,7 @@ book:
         - pages/bkg-spatial-omics.qmd
         - pages/bkg-interoperability.qmd
         - pages/bkg-infrastructure.qmd
-        - pages/bkg-datasets.qmd
+        #- pages/bkg-datasets.qmd
     - part: "Sequencing-based platforms"
       chapters:
         - pages/seq-introduction.qmd
@@ -17,11 +17,11 @@ book:
         - pages/seq-quality-control.qmd
         - pages/seq-processing.qmd
         - pages/seq-clustering.qmd
-        - pages/seq-spot-deconvolution.qmd
+        - pages/seq-deconvolution.qmd
         - pages/seq-spatial-co-localization.qmd
         - pages/seq-marker-genes.qmd
         - pages/seq-workflow-visium-crc.qmd
-        - pages/seq-workflow-human-dlpfc.qmd
+        #- pages/seq-workflow-human-dlpfc.qmd
         - pages/seq-workflow-spatialibd.qmd
     - part: "Imaging-based platforms"
       chapters:
@@ -37,11 +37,11 @@ book:
     - part: "Technology-agnostic/cross-platform/downstream analyses"
       chapters:
         - pages/crs-introduction.qmd
-        - pages/crs-spatially-variable.qmd
-        - pages/crs-featureset-signatures.qmd
+        #- pages/crs-spatially-variable.qmd
+        - pages/crs-signatures.qmd
         - pages/crs-spat-stat.qmd
         - pages/crs-registration.qmd
-        - pages/crs-multi-sample-de.qmd
+        - pages/crs-multi-sample.qmd
         - pages/crs-workflow-xenvis.qmd
   appendices:
     - pages/apx-acknowledgments.qmd
