@@ -27,8 +27,8 @@ biocViews:
     Book, 
     Spatial, 
     SingleCell, 
-    Transcriptomics, 
-    GeneExpression
+    GeneExpression,
+    Transcriptomics 
 Depends: 
     R (>= 4.3)
 Imports:
