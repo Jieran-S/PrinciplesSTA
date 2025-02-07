@@ -7,4 +7,4 @@ WORKDIR /opt/pkg
 # Install book package and build book
 RUN R CMD INSTALL . && \
     quarto install --quiet tinytex && \
-    R CMD build --keep-empty-dirs --no-resave-data .
+    R CMD build --keep-empty-dirs --no-resave-data --no-manual .
