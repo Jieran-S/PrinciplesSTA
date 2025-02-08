@@ -15,8 +15,6 @@ This dataset consists of one sample (Visium capture area) from one donor, consis
 
 More details on the dataset are also included in @sec-seq-workflow-human-dlpfc.
 
-<!-- To do: additional details on dataset here (from DLPFC workflow chapter) -->
-
 
 ## Load data
 
@@ -30,6 +28,8 @@ library(STexampleData)
 ```{r}
 # load object
 spe <- Visium_humanDLPFC()
+# temporary fix
+imgData(spe) <- NULL
 ```
 
 
@@ -39,8 +39,6 @@ We also save the object(s) in `.rds` format for re-use within later chapters to 
 
 ```{r}
 # save object(s)
-# temporary fix until STexampleData objects fixed in Bioc 3.20
-imgData(spe) <- NULL
 saveRDS(spe, file = "seq-spe_load.rds")
 ```
 

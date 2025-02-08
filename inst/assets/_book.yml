@@ -1,5 +1,5 @@
 book:
-  title: "Orchestrating Spatial (Transcript)omics Analysis with Bioconductor"
+  title: "Orchestrating Spatial Transcriptomics Analysis with Bioconductor"
   chapters:
     - index.qmd
     - pages/preamble.qmd
