@@ -15,7 +15,7 @@ book:
         - pages/seq-introduction.qmd
         - pages/seq-data-import-structure.qmd
         - pages/seq-quality-control.qmd
-        - pages/seq-processing.qmd
+        - pages/seq-norm-feat-dimred.qmd
         - pages/seq-clustering.qmd
         - pages/seq-deconvolution.qmd
         - pages/seq-spatial-co-localization.qmd
