@@ -159,18 +159,21 @@ colnames(reducedDim(spe, "UMAP")) <- paste0("UMAP", 1:2)
 Generate a PCA plot using plotting functions from the `r BiocStyle::Biocpkg("scater")` package [@McCarthy2017].
 
 ```{r plt-pcs, fig.height=4}
+# temporary until QC chapter updated
+spe <- addPerCellQC(spe)
+
 plotReducedDim(spe, "PCA", color_by = "sum") + coord_equal() + theme_minimal()
 ```
 
 
 Alternatively, use plotting functions from the [ggspavis](https://bioconductor.org/packages/ggspavis) package.
 
-```{r, fig.width=4.25, fig.height=4.25}
+```{r, fig.width=4, fig.height=4}
 # top 2 PCs
 plotDimRed(spe, plot_type = "PCA")
 ```
 
-```{r, fig.width=4.25, fig.height=4.25}
+```{r, fig.width=4, fig.height=4}
 # top 2 UMAP dimensions
 plotDimRed(spe, plot_type = "UMAP")
 ```
