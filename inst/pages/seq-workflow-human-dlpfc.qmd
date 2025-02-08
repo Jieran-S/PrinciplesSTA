@@ -28,6 +28,8 @@ library(STexampleData)
 # load object
 spe <- Visium_humanDLPFC()
 spe
+# temporary fix
+imgData(spe) <- NULL
 ```
 
 
