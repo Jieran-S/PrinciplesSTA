@@ -8,6 +8,8 @@ on:
       - devel-*
       - RELEASE_**
       - sandbox
+    paths-ignore:
+      - 'README.md' 
     paths:
       - 'DESCRIPTION'
       - 'deps.Dockerfile'
