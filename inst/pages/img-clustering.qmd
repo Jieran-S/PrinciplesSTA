@@ -8,12 +8,20 @@
 
 ## Preamble
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
 ### Introduction
 
+TODO 
+
+<!--Jieran:
 * Clustering is an important step for the workflow analysis
 * Many methods are focusing on the development of methods based-off scRNA clustering method. But 
 imaging-based datasets have a different strategies and cannot make the same assumption as the 
 other 
+-->
 
 ### Dependencies
 
@@ -24,16 +32,16 @@ library(igraph)
 library(Banksy)
 library(ggspavis)
 library(pheatmap)
+library(basilisk)
 library(patchwork)
-library(BiocParallel)
+library(reticulate)
+library(zellkonverter)
 library(SpatialExperiment)
 # set seed for random number generation
 # in order to make results reproducible
 set.seed(2025)
-# specify how/whether to parallelize
-bp <- MulticoreParam(10)
 # load data from previous section
-(spe <- readRDS("img-spe_qc.rds"))
+(spe <- readRDS("img-spe_dr.rds"))
 ```
 
 ## Clustering
@@ -42,18 +50,14 @@ bp <- MulticoreParam(10)
 
 ### Non-spatial
 
-1. Using Leiden clustering to showcase the results
-2. Can also use spatialPCA or BanksyPCA results for some already spatially-aware clusterings
-
-<!-- HLC: The below parameter settings are similar to what 'Seurat' and 'scanpy' do under the hood (last time I checked). Default settings ('type="rank"' and 'objective_function="CPM"') can give weird results at the 'resolution' most are used to seeing (e.g., 0.8). -->
+As a baseline, we will perform graph-based clustering.
+Specifically, we construct a shared nearest neighbor (SNN) graph based on non-spatial PCs (`reducedDim` slot `"PCA_tx"`), and use the Leiden algorithm for community detection.
 
 ```{r clu-Leiden}
-# principal component analysis
-spe <- runPCA(spe, ncomponents=30) 
 # build cellular shared nearest-neighbor (SNN) graph
-g <- buildSNNGraph(spe, use.dimred="PCA", type="jaccard", k=20)
+g <- buildSNNGraph(spe, use.dimred="PCA_tx", type="jaccard", k=20)
 # cluster using Leiden community detection algorithm
-k <- cluster_leiden(g, objective_function="modularity", resolution=0.5)
+k <- cluster_leiden(g, objective_function="modularity", resolution=0.6)
 table(spe$Leiden <- factor(k$membership))
 ```
 
@@ -61,125 +65,119 @@ table(spe$Leiden <- factor(k$membership))
 
 #### Neighborhood-based
 
+<!-- Jieran:
 1. Brief introduction of BANKSY principle
 2. Introduction of the type of methods that are embedding the spatial information
 3. Suggest also other methods with similar line of logic (embedding-based)
+-->
 
 `r BiocStyle::Biocpkg("BANKSY")` [@Singhal2024-BANKSY] embeds cells in a product space of their own and their local neighborhood's (average) transcriptome, representing cell state and microenvironment. 
 Here, the mixing parameter $\lambda\in[0,1]$ (argument `lambda` in `runBanksyPCA()`), controls the spatial component's weight; e.g., **when $\lambda=0$, `BANKSY` reduces to non-spatial clustering**.
 
-<!-- HLC: Woah, this is so slow... No 'BPPARAM' anywhere? Would it be worth pinging the authors to implement parallelization, and expose an argument to control that?-->
-
 ```{r clu-Banksy, message=FALSE}
-# parameter settings
-l <- 0.8; k <- 30; d <- 50
+# retrieve 'lambda' used for dimension reduction
+l <- metadata(spe)$BANKSY_params$lambda 
 # perform 'Banksy' clustering
-spe <- computeBanksy(spe, assay_name="logcounts", k_geom=k)
-spe <- runBanksyPCA(spe, lambda=l, npcs=d)
-spe <- clusterBanksy(spe, lambda=l, npcs=d, resolution=0.3)
+spe <- clusterBanksy(spe, dimred="PCA_sp", resolution=0.2)
 # reformat cluster assignments
 k <- grep("^clust", names(colData(spe)))
 names(colData(spe))[k] <- "Banksy"
 table(spe$Banksy <- factor(spe$Banksy))
 ```
 
+<!--HLC: In principle, Python here works but 'SCVI' is way too slow...
+
 #### Encoder-based
+
 
 1. Introduction of encoder-based methods
 2. Introduction of CellCharter methods specifically
 3. Other methods: STAGATE PROST SpaceFlow
 
-<!--
-```{r eval=FALSE}
-library(basilisk)
-# get basilisk
-env <- basilisk::BasiliskEnvironment(
-  envname="CellCharter_env",
-  pkgname="base",
-  channels = c("conda-forge", "pytorch"),
+```{r env, warning=FALSE, eval=FALSE}
+# initialize 'basilisk' environment
+env <- BasiliskEnvironment(
+  envname="CellCharter", pkgname="OSTA",
+  channels=c("conda-forge", "pytorch"),
   packages=c(
     "python=3.10.15",
     "pytorch=1.12.1",
     "torchvision=0.13.1",
-    "torchaudio=0.12.1"
-  ),
+    "torchaudio=0.12.1"),
   pip=c(
     "scvi-tools==0.20.3",
     "cellcharter==0.2.0",
-    "anndata==0.10.9"
-  )
-)
-
-# initialize 'basilisk' environment
-pro <- basilisk::basiliskStart(py_env)
-
-# activate conda environment
-library(reticulate)
-reticulate::use_condaenv(basilisk::obtainEnvironmentPath(env))
+    "anndata==0.10.9"))
+# activate underlying conda environment
+use_condaenv(obtainEnvironmentPath(env))
+ad <- zellkonverter::SCE2AnnData(spe)
 ```
 
-```{python, eval=FALSE}
+```{python CellCharter, eval=FALSE}
 import cellcharter as cc
-import scvi
-import squidpy as sq
 import anndata as ad
-import numpy as np
+import squidpy as sq
 import pandas as pd
+import numpy as np
 import random
+import scvi
 
-adata = ad.read_h5ad("spe.h5ad")
-adata.layers["counts"] = adata.X
+obj = r.ad
+obj.layers["counts"] = obj.X
 seed = 2025
 random.seed(seed)
 scvi.settings.seed = seed
 
-# Variational autoencoder for feature extraction
-scvi.model.SCVI.setup_anndata(adata, layer="counts")
-model = scvi.model.SCVI(adata)
-model.train(early_stopping=True, enable_progress_bar=True)
-adata.obsm['X_scVI'] = model.get_latent_representation(adata).astype(np.float32)
+# variational autoencoder for feature extraction
+scvi.model.SCVI.setup_anndata(obj, layer="counts")
+mod = scvi.model.SCVI(obj)
+mod.train(enable_progress_bar=True, early_stopping=True, early_stopping_patience=10)
+obj.obsm["X_scVI"] = modl.get_latent_representation(obj).astype(np.float32)
 
-# Getting neighborhood aggregation
-sq.gr.spatial_neighbors(adata, library_key='sample', coord_type='generic', 
-                        delaunay=True, spatial_key='spatial_fov', percentile=99)
-cc.gr.aggregate_neighbors(adata, n_layers=3, use_rep='X_scVI', 
-                          out_key='X_cellcharter', sample_key='sample')
+# getting neighborhood aggregation
+sq.gr.spatial_neighbors(obj, library_key="sample", coord_type="generic", 
+                        delaunay=True, spatial_key="spatial_fov", percentile=99)
+cc.gr.aggregate_neighbors(obj, n_layers=3, use_rep="X_scVI", 
+                          out_key="X_cellcharter", sample_key="sample")
 
-# Clustering by scanning a range of data number
-model = cc.tl.Cluster(n_clusters=14, random_state=seed)
-model.fit(adata, use_rep='X_cellcharter')
+# clustering by scanning a range of data number
+mod = cc.tl.Cluster(n_clusters=14, random_state=seed)
+mod.fit(obj, use_rep="X_cellcharter")
 
-label_df = pd.DataFrame({"label":model.predict(adata, use_rep='X_cellcharter')}) 
+label_df = pd.DataFrame({"label": mod.predict(adata, use_rep="X_cellcharter")}) 
 label_df[["label"]].value_counts()
-"""
 ```
 
 ```{r load cellcharter results, eval=FALSE}
 cc_labels <- read.csv("label_cellcharter.csv")[["label"]]
 table(spe$CellCharter_clusters <- as.factor(cc_labels))
 ```
--->
 
 #### Other methods: Probability statistics-based methods 
 
 * See more example in @sec-seq-clustering-de
 * BASS
 * DR.SC
+-->
 
 ## Visualization
 
+<!--Jieran:
 * Visualization (Align the cluster labels before running it)
 * Smoothness entropy checking
+-->
 
 Let's visualize the assignment obtains from non-spatial and spatially aware clustering:
 
 ```{r plot-xy-k-joint, message=FALSE, fig.width=8, fig.height=2.5}
 #| code-fold: true
+# TODO: 'ggspavis' is being a bit pedantic...
+# 'in_tissue' missing and duplicated names
 spe$in_tissue <- 1
+spe$x_centroid <- NULL
+spe$y_centroid <- NULL
 lapply(c("Leiden", "Banksy"), \(.) {
     plt <- plotSpots(spe, annotate=.)
-    # this is annoying... but points from 
-    # 'ggspavis' defaults are too large :(
     plt$layers[[1]]$aes_params$stroke <- 0
     plt$layers[[1]]$aes_params$size <- 0.2
     plt
@@ -194,7 +192,7 @@ This can be misleading, as we will tend to see only highly abundant subpopulatio
 
 To better distinguish between different subpopulations, we can instead generate separate spatial plots with one subpopulation highlighted at a time:
 
-```{r plot-xy-k-split, fig.width=12, fig.height=4.5}
+```{r plot-xy-k-split, fig.width=9, fig.height=6}
 #| code-fold: true
 lapply(levels(spe$Banksy), \(k) {
     # highlight cells assigned to cluster 'k'
@@ -204,11 +202,12 @@ lapply(levels(spe$Banksy), \(k) {
     plt$layers[[1]]$aes_params$size <- 0.2
     plt + ggtitle(k)
 }) |>
-    wrap_plots(nrow=2) &
+    wrap_plots(nrow=3) &
     scale_color_manual(values=c("lavender", "purple")) &
     theme(plot.title=element_text(hjust=0.5), legend.position="none")
 ```
 
+<!--
 ### (Collapse) Effect of configurations on the results
 
 * Cross-methods ARI validation
@@ -217,6 +216,7 @@ lapply(levels(spe$Banksy), \(k) {
 
 * Using local machine to show the runtime availablility 
 * Refer to benchmarking studies for potential scability issue
+-->
 
 ## Downstream
 
@@ -274,7 +274,6 @@ plotHeatmap(pbsBanksy,
                     features=rownames(pbsBanksy), center=TRUE, scale=TRUE,
                     cluster_cols=FALSE, cluster_rows=FALSE)
 ```
--->
 
 ```{r plot-xy-expr, fig.width=4, fig.height=3, eval=FALSE, message=FALSE}
 #| collapse: TRUE
@@ -300,21 +299,22 @@ gene_plot | cluster_plot
 ```
 
 ### Comparison of DEGs in different spatially-aware clustering cases (collapse)
+-->
 
 ## Appendix
 
 ### Saving {.unnumbered}
 
-```{r save-data, eval=FALSE}
-# default to transcription-based clustering
+```{r save-data}
+# default to spatially aware clustering
 spe$k <- spe$Banksy; saveRDS(spe, "img-spe_cl.rds")
 ```
 
 ### Benchmarks {.unnumbered}
 
-* https://doi.org/10.1093/bfgp/elae040
-* https://doi.org/10.1186/s13059-024-03361-0 
-* https://doi.org/10.1038/s41592-024-02325-3 
-* https://doi.org/10.1016/j.csbj.2023.11.055 
+* [https://doi.org/10.1093/bfgp/elae040]()
+* [https://doi.org/10.1186/s13059-024-03361-0]() 
+* [https://doi.org/10.1038/s41592-024-02325-3]()
+* [https://doi.org/10.1016/j.csbj.2023.11.055]()
 
 ### References {.unnumbered}
