@@ -1,4 +1,4 @@
-# Clustering and Differential Expression {#sec-img-clustering-de}
+# Clustering {#sec-img-clustering}
 
 <!-- HLC: If things get too long, we might want to split into
 1. dimension reduction (transcription-only & spatially aware), 
@@ -34,16 +34,6 @@ set.seed(2025)
 bp <- MulticoreParam(10)
 # load data from previous section
 (spe <- readRDS("img-spe_qc.rds"))
-```
-
-## Preprocessing
-
-Library size-based normalization as is typical for scRNA-seq data has been shown to be problematic for ST data, especially so for targeted panels underlying current commercial imaging-based ST platforms [@Atta2024,@Bhuva2024].
-For lack of a better approach, we here use standard log-library size normalization.
-We caution readers, however, to keep an eye out in the literature for attempts to provide a better strategy.
-
-```{r calc-norm}
-spe <- logNormCounts(spe)
 ```
 
 ## Clustering
