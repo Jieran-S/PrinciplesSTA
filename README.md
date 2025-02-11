@@ -1,6 +1,6 @@
 # Orchestrating Spatial (Transcript)omics Analysis with Bioconductor
 
-📖 [Book](https://lmweber.github.io/OSTA/devel) [![deployment](https://img.shields.io/github/actions/workflow/status/lmweber/OSTA/pages/pages-build-deployment?label=Book%20deployment)](https://github.com/lmweber/OSTA/actions/workflows/pages/pages-build-deployment)  
+📖 [Book](https://lmweber.github.io/OSTA) [![deployment](https://img.shields.io/github/actions/workflow/status/lmweber/OSTA/pages/pages-build-deployment?label=Book%20deployment)](https://github.com/lmweber/OSTA/actions/workflows/pages/pages-build-deployment)  
 🐳 [Docker](https://github.com/lmweber/OSTA/pkgs/container/OSTA) [![biocbook](https://img.shields.io/github/actions/workflow/status/lmweber/OSTA/biocbook.yml?label=Docker%20image)](https://github.com/lmweber/OSTA/actions/workflows/biocbook.yml)
 
 
