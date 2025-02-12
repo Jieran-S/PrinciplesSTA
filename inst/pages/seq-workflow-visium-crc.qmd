@@ -362,8 +362,8 @@ top <- names(tail(sort(var), 8)) # top sets)
 ```
 
 To summarize, MYC signalling is absent in stromal regions; the fibroblast ring
-surrounding the cancerous patch exhibit a lot of `apoptosis` and `hypoxia`; 
-`glycolysis` is absent in stromal, and higher in malignant epithelial regions.
+surrounding a cancerous patch exhibits EMT, angiogenesis, etc.; INFa response 
+and TNFa signalling is patch-like in both stroma and malignant epithelia.
 
 ```{r plt-auc-xy, message=FALSE, fig.width=11, fig.height=6}
 #| code-fold: true
